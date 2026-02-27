@@ -14,6 +14,28 @@ export class RecipeRepository {
     return this.repo.find({ relations: ['dish', 'items', 'items.ingredient'] });
   }
 
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<[Recipe[], number]> {
+    const qb = this.repo
+      .createQueryBuilder('recipe')
+      .leftJoinAndSelect('recipe.dish', 'dish')
+      .leftJoinAndSelect('recipe.items', 'items')
+      .leftJoinAndSelect('items.ingredient', 'ingredient');
+
+    if (search) {
+      qb.where('dish.name ILIKE :search', { search: `%${search}%` });
+    }
+
+    qb.orderBy('recipe.id', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    return qb.getManyAndCount();
+  }
+
   findById(id: number): Promise<Recipe | null> {
     return this.repo.findOne({
       where: { id },

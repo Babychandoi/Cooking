@@ -1,4 +1,3 @@
-// App.tsx
 import React from 'react';
 import './App.css';
 import { BrowserRouter as Router, useRoutes } from "react-router-dom";

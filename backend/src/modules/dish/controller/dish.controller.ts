@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   Inject,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import type { DishService } from '../service/dish.service.js';
 import { DISH_SERVICE } from '../service/dish.service.js';
 import { CreateDishDto } from '../dto/request/create-dish.dto.js';
 import { UpdateDishDto } from '../dto/request/update-dish.dto.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
 
 @Controller('dishes')
@@ -23,8 +25,12 @@ export class DishController {
   ) {}
 
   @Get()
-  async findAll() {
-    const data = await this.dishService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const data = await this.dishService.findPaginated(
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search,
+    );
     return ApiResponse.ok(data);
   }
 

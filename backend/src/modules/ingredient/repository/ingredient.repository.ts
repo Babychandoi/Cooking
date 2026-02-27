@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Ingredient } from '../entity/ingredient.entity.js';
 
 @Injectable()
@@ -12,6 +12,20 @@ export class IngredientRepository {
 
   findAll(): Promise<Ingredient[]> {
     return this.repo.find();
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<[Ingredient[], number]> {
+    const where = search ? { name: ILike(`%${search}%`) } : {};
+    return this.repo.findAndCount({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { id: 'ASC' },
+    });
   }
 
   findById(id: number): Promise<Ingredient | null> {

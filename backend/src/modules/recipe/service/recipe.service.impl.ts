@@ -11,6 +11,7 @@ import { RecipeItem } from '../entity/recipe-item.entity.js';
 import { DishRepository } from '../../dish/repository/dish.repository.js';
 import { IngredientRepository } from '../../ingredient/repository/ingredient.repository.js';
 import { EntityNotFoundException } from '../../../common/exception/exceptions/not-found.exception.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class RecipeServiceImpl implements RecipeService {
@@ -24,6 +25,16 @@ export class RecipeServiceImpl implements RecipeService {
   async findAll(): Promise<RecipeResponseDto[]> {
     const recipes = await this.recipeRepository.findAll();
     return RecipeMapper.toResponseList(recipes);
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<PaginatedResponse<RecipeResponseDto>> {
+    const [items, total] = await this.recipeRepository.findPaginated(page, limit, search);
+    const dtos = RecipeMapper.toResponseList(items);
+    return new PaginatedResponse(dtos, total, page, limit);
   }
 
   async findById(id: number): Promise<RecipeResponseDto> {

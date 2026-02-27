@@ -15,6 +15,7 @@ import { OrderItemIngredient } from '../entity/order-item-ingredient.entity.js';
 import { Ingredient } from '../../ingredient/entity/ingredient.entity.js';
 import { EntityNotFoundException } from '../../../common/exception/exceptions/not-found.exception.js';
 import { BadRequestException } from '@nestjs/common';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class OrderServiceImpl implements OrderService {
@@ -30,6 +31,16 @@ export class OrderServiceImpl implements OrderService {
   async findAll(): Promise<OrderResponseDto[]> {
     const orders = await this.orderRepository.findAll();
     return OrderMapper.toResponseList(orders);
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<PaginatedResponse<OrderResponseDto>> {
+    const [items, total] = await this.orderRepository.findPaginated(page, limit, search);
+    const dtos = OrderMapper.toResponseList(items);
+    return new PaginatedResponse(dtos, total, page, limit);
   }
 
   async findById(id: number): Promise<OrderResponseDto> {

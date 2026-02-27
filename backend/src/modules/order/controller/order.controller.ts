@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   Inject,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { ORDER_SERVICE } from '../service/order.service.js';
 import { CreateOrderDto } from '../dto/request/create-order.dto.js';
 import { CancelOrderDto } from '../dto/request/cancel-order.dto.js';
 import { UpdateOrderStatusDto } from '../dto/request/update-order-status.dto.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
 
 @Controller('orders')
@@ -23,8 +25,12 @@ export class OrderController {
   ) {}
 
   @Get()
-  async findAll() {
-    const data = await this.orderService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const data = await this.orderService.findPaginated(
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search,
+    );
     return ApiResponse.ok(data);
   }
 

@@ -1,6 +1,8 @@
 import axiosClient from './axiosClient';
 import {
   CookingApiResponse,
+  PaginatedResponse,
+  PaginationQuery,
   IngredientResponse,
   CreateIngredientRequest,
   UpdateIngredientRequest,
@@ -17,8 +19,8 @@ import { UserResponse, CreateUserRequest, UpdateUserRequest } from '../types/use
 
 // ===== Ingredients =====
 export const ingredientApi = {
-  getAll: async (): Promise<CookingApiResponse<IngredientResponse[]>> => {
-    const res = await axiosClient.get<CookingApiResponse<IngredientResponse[]>>('/ingredients');
+  getAll: async (params?: PaginationQuery): Promise<CookingApiResponse<PaginatedResponse<IngredientResponse>>> => {
+    const res = await axiosClient.get<CookingApiResponse<PaginatedResponse<IngredientResponse>>>('/ingredients', { params });
     return res.data;
   },
   getById: async (id: number): Promise<CookingApiResponse<IngredientResponse>> => {
@@ -45,8 +47,8 @@ export const ingredientApi = {
 
 // ===== Dishes =====
 export const dishApi = {
-  getAll: async (): Promise<CookingApiResponse<DishResponse[]>> => {
-    const res = await axiosClient.get<CookingApiResponse<DishResponse[]>>('/dishes');
+  getAll: async (params?: PaginationQuery): Promise<CookingApiResponse<PaginatedResponse<DishResponse>>> => {
+    const res = await axiosClient.get<CookingApiResponse<PaginatedResponse<DishResponse>>>('/dishes', { params });
     return res.data;
   },
   getById: async (id: number): Promise<CookingApiResponse<DishResponse>> => {
@@ -69,8 +71,8 @@ export const dishApi = {
 
 // ===== Recipes =====
 export const recipeApi = {
-  getAll: async (): Promise<CookingApiResponse<RecipeResponse[]>> => {
-    const res = await axiosClient.get<CookingApiResponse<RecipeResponse[]>>('/recipes');
+  getAll: async (params?: PaginationQuery): Promise<CookingApiResponse<PaginatedResponse<RecipeResponse>>> => {
+    const res = await axiosClient.get<CookingApiResponse<PaginatedResponse<RecipeResponse>>>('/recipes', { params });
     return res.data;
   },
   getById: async (id: number): Promise<CookingApiResponse<RecipeResponse>> => {
@@ -97,8 +99,8 @@ export const recipeApi = {
 
 // ===== Orders =====
 export const orderApi = {
-  getAll: async (): Promise<CookingApiResponse<OrderResponse[]>> => {
-    const res = await axiosClient.get<CookingApiResponse<OrderResponse[]>>('/orders');
+  getAll: async (params?: PaginationQuery): Promise<CookingApiResponse<PaginatedResponse<OrderResponse>>> => {
+    const res = await axiosClient.get<CookingApiResponse<PaginatedResponse<OrderResponse>>>('/orders', { params });
     return res.data;
   },
   getById: async (id: number): Promise<CookingApiResponse<OrderResponse>> => {
@@ -121,8 +123,8 @@ export const orderApi = {
 
 // ===== Users (Employee Management) =====
 export const userApi = {
-  getAll: async (): Promise<CookingApiResponse<UserResponse[]>> => {
-    const res = await axiosClient.get<CookingApiResponse<UserResponse[]>>('/users');
+  getAll: async (params?: PaginationQuery): Promise<CookingApiResponse<PaginatedResponse<UserResponse>>> => {
+    const res = await axiosClient.get<CookingApiResponse<PaginatedResponse<UserResponse>>>('/users', { params });
     return res.data;
   },
   getById: async (id: number): Promise<CookingApiResponse<UserResponse>> => {

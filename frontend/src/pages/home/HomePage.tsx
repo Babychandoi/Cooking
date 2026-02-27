@@ -25,10 +25,10 @@ export default function HomePage() {
       ]);
 
       setStats({
-        ingredients: ingRes.data?.length || 0,
-        dishes: dishRes.data?.length || 0,
-        recipes: recipeRes.data?.length || 0,
-        orders: orderRes.data?.length || 0,
+        ingredients: ingRes.data?.total || 0,
+        dishes: dishRes.data?.total || 0,
+        recipes: recipeRes.data?.total || 0,
+        orders: orderRes.data?.total || 0,
       });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);

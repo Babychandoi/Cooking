@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Search, ShieldCheck, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { userApi } from '../../services/cookingApi';
 import { UserResponse, CreateUserRequest, UpdateUserRequest } from '../../types/user';
+import Pagination from '../../component/Pagination';
 
 export default function EmployeePage() {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,19 +28,33 @@ export default function EmployeePage() {
   const [editForm, setEditForm] = useState<UpdateUserRequest>({});
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const res = await userApi.getAll();
-      setUsers(res.data || []);
+      setLoading(true);
+      const res = await userApi.getAll({ page, limit, search: debouncedSearch || undefined });
+      const data = res.data;
+      if (data) {
+        setUsers(data.items);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+      }
     } catch {
       toast.error('Không thể tải danh sách nhân viên');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -96,13 +116,7 @@ export default function EmployeePage() {
     }
   };
 
-  const filtered = users.filter(
-    (u) =>
-      u.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  if (loading) {
+  if (loading && users.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -149,16 +163,16 @@ export default function EmployeePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     Không tìm thấy nhân viên nào
                   </td>
                 </tr>
               ) : (
-                filtered.map((u, idx) => (
+                users.map((u, idx) => (
                   <tr key={u.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+                    <td className="px-6 py-4 text-gray-500">{(page - 1) * limit + idx + 1}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
@@ -220,6 +234,8 @@ export default function EmployeePage() {
           </table>
         </div>
       </div>
+
+      <Pagination page={page} totalPages={totalPages} total={total} limit={limit} onPageChange={setPage} />
 
       {/* Modal */}
       {showModal && (

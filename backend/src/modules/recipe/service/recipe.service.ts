@@ -1,9 +1,11 @@
 import { CreateRecipeDto } from '../dto/request/create-recipe.dto.js';
 import { UpdateRecipeDto } from '../dto/request/update-recipe.dto.js';
 import { RecipeResponseDto } from '../dto/response/recipe-response.dto.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 export interface RecipeService {
   findAll(): Promise<RecipeResponseDto[]>;
+  findPaginated(page: number, limit: number, search?: string): Promise<PaginatedResponse<RecipeResponseDto>>;
   findById(id: number): Promise<RecipeResponseDto>;
   findActiveByDishId(dishId: number): Promise<RecipeResponseDto>;
   create(dto: CreateRecipeDto): Promise<RecipeResponseDto>;

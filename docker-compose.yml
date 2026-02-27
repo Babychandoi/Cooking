@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE}
     ports:
-      - "${DB_EXTERNAL_PORT}"
+      - "${DB_EXTERNAL_PORT}:5432"
     volumes:
       - ${HOME}/.cooking-docker/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     container_name: cooking-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT}"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
     healthcheck:

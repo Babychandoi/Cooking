@@ -5,6 +5,7 @@ import { User } from '../entity/user.entity.js';
 import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
 import { UserResponseDto } from '../dto/user-response.dto.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class UserService {
@@ -13,6 +14,16 @@ export class UserService {
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.userRepository.findAll();
     return users.map((u) => this.toDto(u));
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<PaginatedResponse<UserResponseDto>> {
+    const [items, total] = await this.userRepository.findPaginated(page, limit, search);
+    const dtos = items.map((u) => this.toDto(u));
+    return new PaginatedResponse(dtos, total, page, limit);
   }
 
   async findById(id: number): Promise<UserResponseDto> {

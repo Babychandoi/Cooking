@@ -8,6 +8,7 @@ import { DishResponseDto } from '../dto/response/dish-response.dto.js';
 import { DishMapper } from '../mapper/dish.mapper.js';
 import { Dish } from '../entity/dish.entity.js';
 import { EntityNotFoundException } from '../../../common/exception/exceptions/not-found.exception.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class DishServiceImpl implements DishService {
@@ -19,6 +20,16 @@ export class DishServiceImpl implements DishService {
   async findAll(): Promise<DishResponseDto[]> {
     const dishes = await this.dishRepository.findAll();
     return DishMapper.toResponseList(dishes);
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<PaginatedResponse<DishResponseDto>> {
+    const [items, total] = await this.dishRepository.findPaginated(page, limit, search);
+    const dtos = DishMapper.toResponseList(items);
+    return new PaginatedResponse(dtos, total, page, limit);
   }
 
   async findById(id: number): Promise<DishResponseDto> {

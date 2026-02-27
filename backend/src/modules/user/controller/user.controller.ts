@@ -6,11 +6,13 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
 } from '@nestjs/common';
 import { UserService } from '../service/user.service.js';
 import { CreateUserDto } from '../dto/create-user.dto.js';
 import { UpdateUserDto } from '../dto/update-user.dto.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
 import { Roles } from '../../auth/decorator/roles.decorator.js';
 import { UserRole } from '../entity/user.entity.js';
@@ -21,8 +23,12 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  async findAll() {
-    const data = await this.userService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const data = await this.userService.findPaginated(
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search,
+    );
     return ApiResponse.ok(data, 'Lấy danh sách nhân viên thành công');
   }
 

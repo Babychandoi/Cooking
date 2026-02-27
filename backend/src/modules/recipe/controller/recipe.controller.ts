@@ -6,6 +6,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   Inject,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import type { RecipeService } from '../service/recipe.service.js';
 import { RECIPE_SERVICE } from '../service/recipe.service.js';
 import { CreateRecipeDto } from '../dto/request/create-recipe.dto.js';
 import { UpdateRecipeDto } from '../dto/request/update-recipe.dto.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
 
 @Controller('recipes')
@@ -23,8 +25,12 @@ export class RecipeController {
   ) {}
 
   @Get()
-  async findAll() {
-    const data = await this.recipeService.findAll();
+  async findAll(@Query() query: PaginationQueryDto) {
+    const data = await this.recipeService.findPaginated(
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search,
+    );
     return ApiResponse.ok(data);
   }
 

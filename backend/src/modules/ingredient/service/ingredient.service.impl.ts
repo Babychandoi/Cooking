@@ -12,6 +12,7 @@ import { Recipe } from '../../recipe/entity/recipe.entity.js';
 import { OrderItemIngredient } from '../../order/entity/order-item-ingredient.entity.js';
 import { Order, OrderStatus } from '../../order/entity/order.entity.js';
 import { EntityNotFoundException } from '../../../common/exception/exceptions/not-found.exception.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class IngredientServiceImpl implements IngredientService {
@@ -23,6 +24,16 @@ export class IngredientServiceImpl implements IngredientService {
   async findAll(): Promise<IngredientResponseDto[]> {
     const ingredients = await this.ingredientRepository.findAll();
     return IngredientMapper.toResponseList(ingredients);
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<PaginatedResponse<IngredientResponseDto>> {
+    const [items, total] = await this.ingredientRepository.findPaginated(page, limit, search);
+    const dtos = IngredientMapper.toResponseList(items);
+    return new PaginatedResponse(dtos, total, page, limit);
   }
 
   async findById(id: number): Promise<IngredientResponseDto> {

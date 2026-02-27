@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, XCircle, Search, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { orderApi, dishApi } from '../../services/cookingApi';
@@ -8,6 +8,7 @@ import {
   OrderItemRequest,
   DishResponse,
 } from '../../types/cooking';
+import Pagination from '../../component/Pagination';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   PENDING: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
@@ -28,6 +29,11 @@ export default function OrderPage() {
   const [dishes, setDishes] = useState<DishResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -38,17 +44,27 @@ export default function OrderPage() {
   const [orderItems, setOrderItems] = useState<OrderItemRequest[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
+      setLoading(true);
       const [ordersRes, dishesRes] = await Promise.all([
-        orderApi.getAll(),
-        dishApi.getAll(),
+        orderApi.getAll({ page, limit, search: debouncedSearch || undefined }),
+        dishApi.getAll({ limit: 100 }),
       ]);
-      setOrders(ordersRes.data || []);
-      setDishes((dishesRes.data || []).filter((d) => d.isAvailable));
+      const oData = ordersRes.data;
+      if (oData) {
+        setOrders(oData.items);
+        setTotal(oData.total);
+        setTotalPages(oData.totalPages);
+      }
+      setDishes((dishesRes.data?.items || []).filter((d) => d.isAvailable));
     } catch {
       Swal.fire({
         icon: 'error',
@@ -59,7 +75,11 @@ export default function OrderPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openCreate = () => {
     setCustomerName('');
@@ -117,10 +137,9 @@ export default function OrderPage() {
       loadData();
     } catch (err: any) {
       const resData = err.response?.data;
-      const insufficientItems = resData?.data; // array of { name, required, available, shortage }
+      const insufficientItems = resData?.data;
 
       if (Array.isArray(insufficientItems) && insufficientItems.length > 0) {
-        // Build a beautiful HTML table for insufficient stock details
         const rows = insufficientItems
           .map(
             (item: any) =>
@@ -253,14 +272,7 @@ export default function OrderPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 
-  const filtered = orders.filter(
-    (o) =>
-      (o.customerName || '').toLowerCase().includes(search.toLowerCase()) ||
-      String(o.id).includes(search) ||
-      String(o.tableNumber).includes(search),
-  );
-
-  if (loading) {
+  if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -293,10 +305,10 @@ export default function OrderPage() {
 
       {/* Order List */}
       <div className="space-y-3">
-        {filtered.length === 0 && (
+        {orders.length === 0 && (
           <div className="text-center py-10 text-gray-400">Không có dữ liệu</div>
         )}
-        {filtered
+        {orders
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .map((order) => {
             const isExpanded = expandedId === order.id;
@@ -415,6 +427,8 @@ export default function OrderPage() {
           })}
       </div>
 
+      <Pagination page={page} totalPages={totalPages} total={total} limit={limit} onPageChange={setPage} />
+
       {/* Create Order Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -424,21 +438,27 @@ export default function OrderPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tên khách hàng
+                    Tên khách hàng *
                   </label>
                   <input
                     type="text"
+                    required
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Vui lòng nhập tên khách hàng')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    placeholder="Tùy chọn"
+                    placeholder="Nhập tên khách hàng"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số bàn</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số bàn *</label>
                   <input
                     type="number"
                     min="1"
+                    required
+                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Vui lòng nhập số bàn')}
+                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                     value={tableNumber}
                     onChange={(e) => setTableNumber(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"

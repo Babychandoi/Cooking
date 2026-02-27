@@ -125,6 +125,21 @@ export interface InsufficientStockItem {
   shortage: number;
 }
 
+// ===== Pagination =====
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginationQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
 // ===== API Response =====
 export interface CookingApiResponse<T> {
   success: boolean;

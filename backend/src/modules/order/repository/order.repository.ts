@@ -17,6 +17,32 @@ export class OrderRepository {
     });
   }
 
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<[Order[], number]> {
+    const qb = this.repo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.items', 'items')
+      .leftJoinAndSelect('items.dish', 'dish')
+      .leftJoinAndSelect('items.ingredients', 'ingredients')
+      .leftJoinAndSelect('ingredients.ingredient', 'ingredient');
+
+    if (search) {
+      qb.where(
+        'order.customerName ILIKE :search OR CAST(order.id AS TEXT) LIKE :search OR CAST(order.tableNumber AS TEXT) LIKE :search',
+        { search: `%${search}%` },
+      );
+    }
+
+    qb.orderBy('order.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    return qb.getManyAndCount();
+  }
+
   findById(id: number): Promise<Order | null> {
     return this.repo.findOne({
       where: { id },

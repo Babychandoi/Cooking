@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Pencil, Trash2, PackagePlus, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { ingredientApi } from '../../services/cookingApi';
 import { IngredientResponse, CreateIngredientRequest, UpdateIngredientRequest } from '../../types/cooking';
+import Pagination from '../../component/Pagination';
 
 export default function IngredientPage() {
   const [ingredients, setIngredients] = useState<IngredientResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
   const [showModal, setShowModal] = useState(false);
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -21,19 +27,33 @@ export default function IngredientPage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const res = await ingredientApi.getAll();
-      setIngredients(res.data || []);
+      setLoading(true);
+      const res = await ingredientApi.getAll({ page, limit, search: debouncedSearch || undefined });
+      const data = res.data;
+      if (data) {
+        setIngredients(data.items);
+        setTotal(data.total);
+        setTotalPages(data.totalPages);
+      }
     } catch {
       toast.error('Không thể tải danh sách nguyên liệu');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -105,11 +125,7 @@ export default function IngredientPage() {
     }
   };
 
-  const filtered = ingredients.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  if (loading) {
+  if (loading && ingredients.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -119,7 +135,6 @@ export default function IngredientPage() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -140,7 +155,6 @@ export default function IngredientPage() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -154,7 +168,7 @@ export default function IngredientPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => (
+              {ingredients.map((item) => (
                 <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="px-5 py-3 text-gray-600">{item.id}</td>
                   <td className="px-5 py-3 font-medium text-gray-800">{item.name}</td>
@@ -162,140 +176,64 @@ export default function IngredientPage() {
                   <td className="px-5 py-3 text-right font-medium text-gray-800">{item.stock}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => openRestock(item)}
-                        className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
-                        title="Nhập kho"
-                      >
-                        <PackagePlus size={16} />
-                      </button>
-                      <button
-                        onClick={() => openEdit(item)}
-                        className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition"
-                        title="Sửa"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id, item.name)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <button onClick={() => openRestock(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Nhập kho"><PackagePlus size={16} /></button>
+                      <button onClick={() => openEdit(item)} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="Sửa"><Pencil size={16} /></button>
+                      <button onClick={() => handleDelete(item.id, item.name)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Xóa"><Trash2 size={16} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-400">
-                    Không có dữ liệu
-                  </td>
-                </tr>
+              {ingredients.length === 0 && (
+                <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-400">Không có dữ liệu</td></tr>
               )}
             </tbody>
           </table>
         </div>
+        <div className="px-5 pb-3">
+          <Pagination page={page} totalPages={totalPages} total={total} limit={limit} onPageChange={setPage} />
+        </div>
       </div>
 
-      {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {editingId ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu'}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{editingId ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                />
+                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị</label>
-                <input
-                  type="text"
-                  required
-                  value={form.unit}
-                  onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                />
+                <input type="text" required value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                  />
+                  <input type="number" min="0" step="0.01" required value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-                >
-                  {editingId ? 'Cập nhật' : 'Thêm'}
-                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Hủy</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">{editingId ? 'Cập nhật' : 'Thêm'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Restock Modal */}
       {showRestockModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Nhập kho</h3>
             <form onSubmit={handleRestock} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Số lượng nhập thêm
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  value={restockQty}
-                  onChange={(e) => setRestockQty(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                  autoFocus
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập thêm</label>
+                <input type="number" min="0.01" step="0.01" required value={restockQty} onChange={(e) => setRestockQty(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" autoFocus />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRestockModal(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                >
-                  Nhập kho
-                </button>
+                <button type="button" onClick={() => setShowRestockModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Hủy</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Nhập kho</button>
               </div>
             </form>
           </div>

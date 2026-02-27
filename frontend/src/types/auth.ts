@@ -22,7 +22,7 @@ export interface LogoutRequest {
 export interface ApiResponse<T> {
   success: boolean;
   statusCode: number;
-  code: number; // alias for statusCode
+  code: number;
   message: string;
   data: T;
   timestamp: string;

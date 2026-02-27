@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { ILike, Not, Repository } from 'typeorm';
 import { User } from '../entity/user.entity.js';
 
 @Injectable()
@@ -12,6 +12,27 @@ export class UserRepository {
 
   async findAll(): Promise<User[]> {
     return this.repo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async findPaginated(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<[User[], number]> {
+    const qb = this.repo.createQueryBuilder('user');
+
+    if (search) {
+      qb.where(
+        'user.fullName ILIKE :search OR user.email ILIKE :search',
+        { search: `%${search}%` },
+      );
+    }
+
+    qb.orderBy('user.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    return qb.getManyAndCount();
   }
 
   async findById(id: number): Promise<User | null> {

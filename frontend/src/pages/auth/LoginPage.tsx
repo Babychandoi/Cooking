@@ -91,12 +91,12 @@ export default function LoginPage() {
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
-          <p className="text-center text-sm text-gray-500 mt-6">
+          {/* <p className="text-center text-sm text-gray-500 mt-6">
             Chưa có tài khoản?{' '}
             <Link to="/register" className="text-orange-600 hover:text-orange-700 font-medium">
               Đăng ký
             </Link>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
