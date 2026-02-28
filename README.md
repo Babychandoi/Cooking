@@ -2,17 +2,6 @@
 
 Hệ thống quản lý nhà bếp — quản lý nguyên liệu, món ăn, công thức, đơn hàng và nhân viên.
 
-## Mục lục
-
-- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
-- [Khởi chạy dự án (Docker)](#khởi-chạy-dự-án-docker)
-- [Tài khoản mặc định](#tài-khoản-mặc-định)
-- [Sơ đồ Database (ERD)](#sơ-đồ-database-erd)
-- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
-- [Xử lý System Robustness](#xử-lý-system-robustness)
-
----
-
 ## Yêu cầu hệ thống
 
 - **Docker** >= 20.x
@@ -59,7 +48,8 @@ REACT_APP_API_URL=http://localhost:8080/api
 ### 3. Khởi chạy toàn bộ hệ thống
 
 ```bash
-docker compose up --build -d
+docker compose build --no-cache
+docker compose up -d
 ```
 
 Lệnh trên sẽ khởi tạo 4 container:
@@ -290,15 +280,3 @@ Bảng `order_item_ingredients` lưu **snapshot** nguyên liệu đã dùng tạ
 | Không đổi đơn vị nguyên liệu khi đang dùng | Tránh sai lệch tính toán kho |
 | Trạng thái đơn hàng chỉ chuyển tiến | PENDING → CONFIRMED → PREPARING → COMPLETED |
 | Hủy đơn chỉ cho PENDING/CONFIRMED | Đang chế biến hoặc hoàn thành không thể hủy |
-
-### 5. Global Error Handling
-
-- **HttpExceptionFilter**: Chuẩn hóa response lỗi với format `{ code, message, data }`
-- **ValidationPipe**: Tự động validate input bằng `class-validator`, trả lỗi chi tiết
-- **LoggingInterceptor**: Ghi log request/response để debug
-
-### 6. CORS & Security
-
-- CORS enabled cho phép frontend gọi API cross-origin
-- Password hash bằng `bcrypt` (salt rounds = 10)
-- Refresh token revoke khi logout (xóa khỏi Redis)
