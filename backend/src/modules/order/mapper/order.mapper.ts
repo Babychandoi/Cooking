@@ -7,10 +7,10 @@ export class OrderMapper {
   static toResponse(entity: Order): OrderResponseDto {
     const dto = new OrderResponseDto();
     dto.id = entity.id;
-    dto.customerName = entity.customerName;
-    dto.tableNumber = entity.tableNumber;
+    dto.tableSessionId = entity.tableSessionId;
+    dto.branchId = entity.branchId;
+    dto.orderNumber = entity.orderNumber;
     dto.status = entity.status;
-    dto.totalPrice = Number(entity.totalPrice);
     dto.note = entity.note;
     dto.createdAt = entity.createdAt;
     dto.items = entity.items

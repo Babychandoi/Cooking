@@ -40,7 +40,6 @@ export default function HomePage() {
   const statCards = [
     { label: 'Nguyên liệu', value: stats.ingredients, icon: Beef, color: 'bg-blue-500', bgLight: 'bg-blue-50' },
     { label: 'Món ăn', value: stats.dishes, icon: UtensilsCrossed, color: 'bg-green-500', bgLight: 'bg-green-50' },
-    { label: 'Công thức', value: stats.recipes, icon: BookOpen, color: 'bg-purple-500', bgLight: 'bg-purple-50' },
     { label: 'Đơn hàng', value: stats.orders, icon: ShoppingCart, color: 'bg-orange-500', bgLight: 'bg-orange-50' },
   ];
 

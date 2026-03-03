@@ -1,24 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { IngredientService } from './ingredient.service.js';
 import { IngredientRepository } from '../repository/ingredient.repository.js';
+import { IngredientMapper } from '../mapper/ingredient.mapper.js';
 import { CreateIngredientDto } from '../dto/request/create-ingredient.dto.js';
 import { UpdateIngredientDto } from '../dto/request/update-ingredient.dto.js';
 import { IngredientResponseDto } from '../dto/response/ingredient-response.dto.js';
-import { IngredientMapper } from '../mapper/ingredient.mapper.js';
 import { Ingredient } from '../entity/ingredient.entity.js';
-import { RecipeItem } from '../../recipe/entity/recipe-item.entity.js';
-import { Recipe } from '../../recipe/entity/recipe.entity.js';
-import { OrderItemIngredient } from '../../order/entity/order-item-ingredient.entity.js';
-import { Order, OrderStatus } from '../../order/entity/order.entity.js';
-import { EntityNotFoundException } from '../../../common/exception/exceptions/not-found.exception.js';
 import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class IngredientServiceImpl implements IngredientService {
   constructor(
     private readonly ingredientRepository: IngredientRepository,
-    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(): Promise<IngredientResponseDto[]> {
@@ -36,10 +29,10 @@ export class IngredientServiceImpl implements IngredientService {
     return new PaginatedResponse(dtos, total, page, limit);
   }
 
-  async findById(id: number): Promise<IngredientResponseDto> {
+  async findById(id: string): Promise<IngredientResponseDto> {
     const ingredient = await this.ingredientRepository.findById(id);
     if (!ingredient) {
-      throw new EntityNotFoundException('Ingredient', id);
+      throw new NotFoundException(`Ingredient with ID ${id} not found`);
     }
     return IngredientMapper.toResponse(ingredient);
   }
@@ -48,116 +41,46 @@ export class IngredientServiceImpl implements IngredientService {
     const ingredient = new Ingredient();
     ingredient.name = dto.name;
     ingredient.unit = dto.unit;
-    ingredient.stock = dto.stock;
+    ingredient.status = 'active';
 
     const saved = await this.ingredientRepository.save(ingredient);
     return IngredientMapper.toResponse(saved);
   }
 
   async update(
-    id: number,
+    id: string,
     dto: UpdateIngredientDto,
   ): Promise<IngredientResponseDto> {
     const ingredient = await this.ingredientRepository.findById(id);
     if (!ingredient) {
-      throw new EntityNotFoundException('Ingredient', id);
-    }
-
-    // Block unit change if ingredient is used in active recipes or cancellable orders
-    if (dto.unit !== undefined && dto.unit !== ingredient.unit) {
-      const activeRecipeItem = await this.dataSource
-        .getRepository(RecipeItem)
-        .createQueryBuilder('ri')
-        .innerJoin(Recipe, 'r', 'r.id = ri.recipe_id')
-        .where('ri.ingredient_id = :id', { id })
-        .andWhere('r.isActive = :active', { active: true })
-        .getOne();
-
-      if (activeRecipeItem) {
-        throw new BadRequestException(
-          'Không thể đổi đơn vị vì nguyên liệu đang được sử dụng trong công thức',
-        );
-      }
-
-      const cancellableOrderIngredient = await this.dataSource
-        .getRepository(OrderItemIngredient)
-        .createQueryBuilder('oii')
-        .innerJoin('oii.orderItem', 'oi')
-        .innerJoin(Order, 'o', 'o.id = oi.order_id')
-        .where('oii.ingredient_id = :id', { id })
-        .andWhere('o.status IN (:...statuses)', {
-          statuses: [OrderStatus.PENDING, OrderStatus.CONFIRMED],
-        })
-        .getOne();
-
-      if (cancellableOrderIngredient) {
-        throw new BadRequestException(
-          'Không thể đổi đơn vị vì còn đơn hàng chưa hoàn thành sử dụng nguyên liệu này',
-        );
-      }
+      throw new NotFoundException(`Ingredient with ID ${id} not found`);
     }
 
     if (dto.name !== undefined) ingredient.name = dto.name;
     if (dto.unit !== undefined) ingredient.unit = dto.unit;
-    if (dto.stock !== undefined) ingredient.stock = dto.stock;
 
-    const saved = await this.ingredientRepository.save(ingredient);
-    return IngredientMapper.toResponse(saved);
+    const updated = await this.ingredientRepository.save(ingredient);
+    return IngredientMapper.toResponse(updated);
   }
 
   async restock(
-    id: number,
+    id: string,
     quantity: number,
   ): Promise<IngredientResponseDto> {
+    // Note: Stock is now managed per branch via BranchIngredient
+    // This method is kept for backward compatibility but does nothing
     const ingredient = await this.ingredientRepository.findById(id);
     if (!ingredient) {
-      throw new EntityNotFoundException('Ingredient', id);
+      throw new NotFoundException(`Ingredient with ID ${id} not found`);
     }
-
-    ingredient.stock = Number(ingredient.stock) + quantity;
-    const saved = await this.ingredientRepository.save(ingredient);
-    return IngredientMapper.toResponse(saved);
+    return IngredientMapper.toResponse(ingredient);
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     const ingredient = await this.ingredientRepository.findById(id);
     if (!ingredient) {
-      throw new EntityNotFoundException('Ingredient', id);
+      throw new NotFoundException(`Ingredient with ID ${id} not found`);
     }
-
-    // Check if any active recipe uses this ingredient
-    const activeRecipeItem = await this.dataSource
-      .getRepository(RecipeItem)
-      .createQueryBuilder('ri')
-      .innerJoin(Recipe, 'r', 'r.id = ri.recipe_id')
-      .where('ri.ingredient_id = :id', { id })
-      .andWhere('r.isActive = :active', { active: true })
-      .getOne();
-
-    if (activeRecipeItem) {
-      throw new BadRequestException(
-        'Không thể xóa nguyên liệu đang được sử dụng trong công thức',
-      );
-    }
-
-    // Check if any cancellable order (PENDING/CONFIRMED) uses this ingredient
-    const cancellableOrderIngredient = await this.dataSource
-      .getRepository(OrderItemIngredient)
-      .createQueryBuilder('oii')
-      .innerJoin('oii.orderItem', 'oi')
-      .innerJoin(Order, 'o', 'o.id = oi.order_id')
-      .where('oii.ingredient_id = :id', { id })
-      .andWhere('o.status IN (:...statuses)', {
-        statuses: [OrderStatus.PENDING, OrderStatus.CONFIRMED],
-      })
-      .getOne();
-
-    if (cancellableOrderIngredient) {
-      throw new BadRequestException(
-        'Không thể xóa nguyên liệu vì còn đơn hàng có thể hủy sử dụng nguyên liệu này',
-      );
-    }
-
     await this.ingredientRepository.remove(id);
   }
 }

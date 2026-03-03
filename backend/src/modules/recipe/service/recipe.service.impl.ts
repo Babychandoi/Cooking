@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { RecipeService } from './recipe.service.js';
 import { RecipeRepository } from '../repository/recipe.repository.js';
 import { RecipeItemRepository } from '../repository/recipe-item.repository.js';
@@ -37,7 +37,7 @@ export class RecipeServiceImpl implements RecipeService {
     return new PaginatedResponse(dtos, total, page, limit);
   }
 
-  async findById(id: number): Promise<RecipeResponseDto> {
+  async findById(id: string): Promise<RecipeResponseDto> {
     const recipe = await this.recipeRepository.findById(id);
     if (!recipe) {
       throw new EntityNotFoundException('Recipe', id);
@@ -45,7 +45,7 @@ export class RecipeServiceImpl implements RecipeService {
     return RecipeMapper.toResponse(recipe);
   }
 
-  async findActiveByDishId(dishId: number): Promise<RecipeResponseDto> {
+  async findActiveByDishId(dishId: string): Promise<RecipeResponseDto> {
     const recipe = await this.recipeRepository.findActiveByDishId(dishId);
     if (!recipe) {
       throw new EntityNotFoundException('Active Recipe for Dish', dishId);
@@ -99,7 +99,7 @@ export class RecipeServiceImpl implements RecipeService {
   }
 
   async update(
-    id: number,
+    id: string,
     dto: UpdateRecipeDto,
   ): Promise<RecipeResponseDto> {
     // Validate existing recipe
@@ -168,7 +168,7 @@ export class RecipeServiceImpl implements RecipeService {
     return RecipeMapper.toResponse(full!);
   }
 
-  async activate(id: number): Promise<RecipeResponseDto> {
+  async activate(id: string): Promise<RecipeResponseDto> {
     const recipe = await this.recipeRepository.findById(id);
     if (!recipe) {
       throw new EntityNotFoundException('Recipe', id);
@@ -191,5 +191,20 @@ export class RecipeServiceImpl implements RecipeService {
 
     const full = await this.recipeRepository.findById(id);
     return RecipeMapper.toResponse(full!);
+  }
+
+  async delete(id: string): Promise<void> {
+    const recipe = await this.recipeRepository.findById(id);
+    if (!recipe) {
+      throw new EntityNotFoundException('Recipe', id);
+    }
+
+    // Cannot delete active recipe
+    if (recipe.isActive) {
+      throw new BadRequestException('Không thể xóa công thức đang được sử dụng');
+    }
+
+    // Soft delete the recipe
+    await this.recipeRepository.getRepository().softDelete(id);
   }
 }

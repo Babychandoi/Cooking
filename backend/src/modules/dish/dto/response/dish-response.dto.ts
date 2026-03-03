@@ -1,7 +1,9 @@
 export class DishResponseDto {
-  id: number;
+  id: string;
   name: string;
   description: string;
-  price: number;
-  isAvailable: boolean;
+  imageUrl: string | null;
+  isCombo: boolean;
+  status: string;
+  createdAt: Date;
 }

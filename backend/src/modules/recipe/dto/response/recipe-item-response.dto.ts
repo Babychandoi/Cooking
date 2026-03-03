@@ -1,6 +1,6 @@
 export class RecipeItemResponseDto {
-  id: number;
-  ingredientId: number;
+  id: string;
+  ingredientId: string;
   ingredientName: string;
   quantity: number;
   unit: string;

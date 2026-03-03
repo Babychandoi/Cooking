@@ -6,11 +6,11 @@ import { PaginatedResponse } from '../../../common/response/paginated-response.j
 export interface IngredientService {
   findAll(): Promise<IngredientResponseDto[]>;
   findPaginated(page: number, limit: number, search?: string): Promise<PaginatedResponse<IngredientResponseDto>>;
-  findById(id: number): Promise<IngredientResponseDto>;
+  findById(id: string): Promise<IngredientResponseDto>;
   create(dto: CreateIngredientDto): Promise<IngredientResponseDto>;
-  update(id: number, dto: UpdateIngredientDto): Promise<IngredientResponseDto>;
-  restock(id: number, quantity: number): Promise<IngredientResponseDto>;
-  delete(id: number): Promise<void>;
+  update(id: string, dto: UpdateIngredientDto): Promise<IngredientResponseDto>;
+  restock(id: string, quantity: number): Promise<IngredientResponseDto>;
+  delete(id: string): Promise<void>;
 }
 
 export const INGREDIENT_SERVICE = 'INGREDIENT_SERVICE';

@@ -11,8 +11,8 @@ import {
 
 export class UpdateRecipeItemDto {
   @IsNotEmpty()
-  @IsNumber()
-  ingredientId: number;
+  @IsString()
+  ingredientId: string;
 
   @IsNotEmpty()
   @IsNumber()
@@ -26,8 +26,8 @@ export class UpdateRecipeItemDto {
 
 export class UpdateRecipeDto {
   @IsNotEmpty()
-  @IsNumber()
-  dishId: number;
+  @IsString()
+  dishId: string;
 
   @IsArray()
   @ArrayMinSize(1)

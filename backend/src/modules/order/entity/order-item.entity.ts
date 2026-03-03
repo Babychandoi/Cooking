@@ -12,22 +12,22 @@ import { OrderItemIngredient } from './order-item-ingredient.entity.js';
 
 @Entity('order_items')
 export class OrderItem {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @Column({ name: 'order_id' })
-  orderId: number;
+  orderId: string;
 
   @ManyToOne(() => Dish, { eager: true })
   @JoinColumn({ name: 'dish_id' })
   dish: Dish;
 
   @Column({ name: 'dish_id' })
-  dishId: number;
+  dishId: string;
 
   @Column()
   quantity: number;
@@ -35,7 +35,7 @@ export class OrderItem {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   unitPrice: number;
 
-  @Column({ name: 'recipe_version' })
+  @Column({ name: 'recipe_version', nullable: true })
   recipeVersion: number;
 
   @OneToMany(

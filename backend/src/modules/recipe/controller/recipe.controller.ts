@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -35,13 +36,13 @@ export class RecipeController {
   }
 
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id') id: string) {
     const data = await this.recipeService.findById(id);
     return ApiResponse.ok(data);
   }
 
   @Get('dish/:dishId/active')
-  async findActiveByDishId(@Param('dishId', ParseIntPipe) dishId: number) {
+  async findActiveByDishId(@Param('dishId') dishId: string) {
     const data = await this.recipeService.findActiveByDishId(dishId);
     return ApiResponse.ok(data);
   }
@@ -54,7 +55,7 @@ export class RecipeController {
 
   @Put(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateRecipeDto,
   ) {
     const data = await this.recipeService.update(id, dto);
@@ -62,8 +63,14 @@ export class RecipeController {
   }
 
   @Patch(':id/activate')
-  async activate(@Param('id', ParseIntPipe) id: number) {
+  async activate(@Param('id') id: string) {
     const data = await this.recipeService.activate(id);
     return ApiResponse.ok(data, 'Recipe activated');
+  }
+
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    await this.recipeService.delete(id);
+    return ApiResponse.ok(null, 'Recipe deleted');
   }
 }

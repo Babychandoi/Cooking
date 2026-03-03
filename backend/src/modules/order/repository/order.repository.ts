@@ -31,7 +31,7 @@ export class OrderRepository {
 
     if (search) {
       qb.where(
-        'order.customerName ILIKE :search OR CAST(order.id AS TEXT) LIKE :search OR CAST(order.tableNumber AS TEXT) LIKE :search',
+        'order.orderNumber ILIKE :search OR order.id::text ILIKE :search',
         { search: `%${search}%` },
       );
     }
@@ -43,7 +43,7 @@ export class OrderRepository {
     return qb.getManyAndCount();
   }
 
-  findById(id: number): Promise<Order | null> {
+  findById(id: string): Promise<Order | null> {
     return this.repo.findOne({
       where: { id },
       relations: ['items', 'items.dish', 'items.ingredients', 'items.ingredients.ingredient'],

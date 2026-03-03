@@ -10,22 +10,22 @@ import { Ingredient } from '../../ingredient/entity/ingredient.entity.js';
 
 @Entity('recipe_items')
 export class RecipeItem {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Recipe, (recipe) => recipe.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'recipe_id' })
   recipe: Recipe;
 
   @Column({ name: 'recipe_id' })
-  recipeId: number;
+  recipeId: string;
 
   @ManyToOne(() => Ingredient, { eager: true })
   @JoinColumn({ name: 'ingredient_id' })
   ingredient: Ingredient;
 
   @Column({ name: 'ingredient_id' })
-  ingredientId: number;
+  ingredientId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   quantity: number;

@@ -4,42 +4,53 @@ import {
   Column,
   OneToMany,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity.js';
+import { TableSession } from '../../table-session/entity/table-session.entity.js';
+import { Branch } from '../../branch/entity/branch.entity.js';
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  NEW = 'NEW',
   PREPARING = 'PREPARING',
-  COMPLETED = 'COMPLETED',
+  SERVED = 'SERVED',
   CANCELLED = 'CANCELLED',
 }
 
 @Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ length: 100, nullable: true })
-  customerName: string;
+  @ManyToOne(() => TableSession, (session) => session.orders)
+  @JoinColumn({ name: 'table_session_id' })
+  tableSession: TableSession;
 
-  @Column({ nullable: true })
-  tableNumber: number;
+  @Column({ name: 'table_session_id' })
+  tableSessionId: string;
+
+  @ManyToOne(() => Branch)
+  @JoinColumn({ name: 'branch_id' })
+  branch: Branch;
+
+  @Column({ name: 'branch_id' })
+  branchId: string;
+
+  @Column({ name: 'order_number', length: 50 })
+  orderNumber: string;
 
   @Column({
     type: 'enum',
     enum: OrderStatus,
-    default: OrderStatus.PENDING,
+    default: OrderStatus.NEW,
   })
   status: OrderStatus;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  totalPrice: number;
 
   @Column({ type: 'text', nullable: true })
   note: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @OneToMany(() => OrderItem, (item) => item.order, {

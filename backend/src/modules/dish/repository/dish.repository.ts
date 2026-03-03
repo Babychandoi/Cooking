@@ -28,19 +28,15 @@ export class DishRepository {
     });
   }
 
-  findById(id: number): Promise<Dish | null> {
+  findById(id: string): Promise<Dish | null> {
     return this.repo.findOne({ where: { id } });
-  }
-
-  findAvailable(): Promise<Dish[]> {
-    return this.repo.find({ where: { isAvailable: true } });
   }
 
   save(dish: Dish): Promise<Dish> {
     return this.repo.save(dish);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.repo.delete(id);
+  async remove(id: string): Promise<void> {
+    await this.repo.softDelete(id);
   }
 }

@@ -7,12 +7,21 @@ import { AppService } from './app.service.js';
 import appConfig from './config/app.config.js';
 import databaseConfig from './config/database.config.js';
 import redisConfig from './config/redis.config.js';
+import minioConfig from './config/minio.config.js';
 import { IngredientModule } from './modules/ingredient/ingredient.module.js';
 import { DishModule } from './modules/dish/dish.module.js';
 import { RecipeModule } from './modules/recipe/recipe.module.js';
 import { OrderModule } from './modules/order/order.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UserModule } from './modules/user/user.module.js';
+import { RestaurantChainModule } from './modules/restaurant-chain/restaurant-chain.module.js';
+import { BranchModule } from './modules/branch/branch.module.js';
+import { TableModule } from './modules/table/table.module.js';
+import { TableSessionModule } from './modules/table-session/table-session.module.js';
+import { BranchDishModule } from './modules/branch-dish/branch-dish.module.js';
+import { BranchIngredientModule } from './modules/branch-ingredient/branch-ingredient.module.js';
+import { InvoiceModule } from './modules/invoice/invoice.module.js';
+import { PaymentModule } from './modules/payment/payment.module.js';
 import { JwtAuthGuard } from './modules/auth/guard/jwt-auth.guard.js';
 import { RolesGuard } from './modules/auth/guard/roles.guard.js';
 
@@ -20,7 +29,7 @@ import { RolesGuard } from './modules/auth/guard/roles.guard.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisConfig],
+      load: [appConfig, databaseConfig, redisConfig, minioConfig],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -38,10 +47,18 @@ import { RolesGuard } from './modules/auth/guard/roles.guard.js';
     }),
     AuthModule,
     UserModule,
+    RestaurantChainModule,
+    BranchModule,
+    TableModule,
+    TableSessionModule,
     IngredientModule,
     DishModule,
     RecipeModule,
+    BranchDishModule,
+    BranchIngredientModule,
     OrderModule,
+    InvoiceModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

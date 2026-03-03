@@ -1,9 +1,9 @@
 import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
-  IsNumber,
-  IsOptional,
   IsString,
+  IsOptional,
+  IsNumber,
   IsArray,
   ValidateNested,
   Min,
@@ -12,23 +12,35 @@ import {
 
 export class OrderItemDto {
   @IsNotEmpty()
-  @IsNumber()
-  dishId: number;
+  @IsString()
+  dishId: string;
 
   @IsNotEmpty()
   @IsNumber()
   @Min(1)
   quantity: number;
-}
-
-export class CreateOrderDto {
-  @IsOptional()
-  @IsString()
-  customerName?: string;
 
   @IsOptional()
   @IsNumber()
-  tableNumber?: number;
+  unitPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class CreateOrderDto {
+  @IsNotEmpty()
+  @IsString()
+  tableSessionId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  branchId: string;
+
+  @IsOptional()
+  @IsString()
+  orderNumber?: string;
 
   @IsOptional()
   @IsString()

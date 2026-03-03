@@ -7,12 +7,14 @@ import { DishController } from './controller/dish.controller.js';
 import { DISH_SERVICE } from './service/dish.service.js';
 import { IngredientModule } from '../ingredient/ingredient.module.js';
 import { RecipeModule } from '../recipe/recipe.module.js';
+import { UploadModule } from '../upload/upload.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Dish]),
     IngredientModule,
     forwardRef(() => RecipeModule),
+    UploadModule,
   ],
   controllers: [DishController],
   providers: [

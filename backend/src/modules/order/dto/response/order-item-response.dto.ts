@@ -1,6 +1,6 @@
 export class OrderItemResponseDto {
-  id: number;
-  dishId: number;
+  id: string;
+  dishId: string;
   dishName: string;
   quantity: number;
   unitPrice: number;

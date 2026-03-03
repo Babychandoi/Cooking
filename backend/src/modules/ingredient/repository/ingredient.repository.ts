@@ -28,7 +28,7 @@ export class IngredientRepository {
     });
   }
 
-  findById(id: number): Promise<Ingredient | null> {
+  findById(id: string): Promise<Ingredient | null> {
     return this.repo.findOne({ where: { id } });
   }
 
@@ -36,7 +36,7 @@ export class IngredientRepository {
     return this.repo.save(ingredient);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.repo.delete(id);
   }
 

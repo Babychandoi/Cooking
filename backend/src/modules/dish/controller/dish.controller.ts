@@ -7,21 +7,25 @@ import {
   Body,
   Param,
   Query,
-  ParseIntPipe,
   Inject,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { DishService } from '../service/dish.service.js';
 import { DISH_SERVICE } from '../service/dish.service.js';
 import { CreateDishDto } from '../dto/request/create-dish.dto.js';
 import { UpdateDishDto } from '../dto/request/update-dish.dto.js';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
+import { UploadService } from '../../upload/service/upload.service.js';
 
 @Controller('dishes')
 export class DishController {
   constructor(
     @Inject(DISH_SERVICE)
     private readonly dishService: DishService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @Get()
@@ -35,7 +39,7 @@ export class DishController {
   }
 
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id') id: string) {
     const data = await this.dishService.findById(id);
     return ApiResponse.ok(data);
   }
@@ -48,7 +52,7 @@ export class DishController {
 
   @Put(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateDishDto,
   ) {
     const data = await this.dishService.update(id, dto);
@@ -56,8 +60,18 @@ export class DishController {
   }
 
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number) {
+  async delete(@Param('id') id: string) {
     await this.dishService.delete(id);
     return ApiResponse.ok(null, 'Deleted');
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(@UploadedFile() file?: Express.Multer.File) {
+    if (!file) {
+      return ApiResponse.error('No file uploaded', 400);
+    }
+    const url = await this.uploadService.uploadFile(file);
+    return ApiResponse.ok({ url });
   }
 }

@@ -1,21 +1,24 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Beef,
   UtensilsCrossed,
-  BookOpen,
   ShoppingCart,
   LayoutDashboard,
   Users,
+  MapPin,
+  Grid3x3,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 const menuItems = [
   { to: '/', icon: LayoutDashboard, label: 'Tổng quan', adminOnly: false },
+  { to: '/branches', icon: MapPin, label: 'Chi nhánh', adminOnly: true },
+  { to: '/tables', icon: Grid3x3, label: 'Bàn ăn', adminOnly: false },
   { to: '/ingredients', icon: Beef, label: 'Nguyên liệu', adminOnly: false },
   { to: '/dishes', icon: UtensilsCrossed, label: 'Món ăn', adminOnly: false },
-  { to: '/recipes', icon: BookOpen, label: 'Công thức', adminOnly: false },
   { to: '/orders', icon: ShoppingCart, label: 'Đơn hàng', adminOnly: false },
+  { to: '/invoices', icon: Receipt, label: 'Hóa đơn', adminOnly: false },
   { to: '/employees', icon: Users, label: 'Nhân viên', adminOnly: true },
 ];
 

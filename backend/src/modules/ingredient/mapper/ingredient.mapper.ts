@@ -7,8 +7,7 @@ export class IngredientMapper {
     dto.id = entity.id;
     dto.name = entity.name;
     dto.unit = entity.unit;
-    dto.stock = Number(entity.stock);
-    dto.version = entity.version;
+    dto.status = entity.status;
     return dto;
   }
 

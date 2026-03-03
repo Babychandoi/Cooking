@@ -35,7 +35,7 @@ export class OrderController {
   }
 
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id') id: string) {
     const data = await this.orderService.findById(id);
     return ApiResponse.ok(data);
   }
@@ -48,7 +48,7 @@ export class OrderController {
 
   @Patch(':id/status')
   async updateStatus(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
     const data = await this.orderService.updateStatus(id, dto.status);
@@ -57,7 +57,7 @@ export class OrderController {
 
   @Patch(':id/cancel')
   async cancel(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: CancelOrderDto,
   ) {
     const data = await this.orderService.cancel(id, dto.reason);

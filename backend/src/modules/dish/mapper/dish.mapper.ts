@@ -7,8 +7,10 @@ export class DishMapper {
     dto.id = entity.id;
     dto.name = entity.name;
     dto.description = entity.description;
-    dto.price = Number(entity.price);
-    dto.isAvailable = entity.isAvailable;
+    dto.imageUrl = entity.imageUrl;
+    dto.isCombo = entity.isCombo;
+    dto.status = entity.status;
+    dto.createdAt = entity.createdAt;
     return dto;
   }
 

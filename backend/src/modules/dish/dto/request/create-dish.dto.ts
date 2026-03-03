@@ -1,10 +1,8 @@
 import {
   IsNotEmpty,
   IsString,
-  IsNumber,
   IsOptional,
   IsBoolean,
-  Min,
 } from 'class-validator';
 
 export class CreateDishDto {
@@ -16,12 +14,11 @@ export class CreateDishDto {
   @IsString()
   description?: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(0)
-  price: number;
-
   @IsOptional()
   @IsBoolean()
-  isAvailable?: boolean;
+  isCombo?: boolean;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

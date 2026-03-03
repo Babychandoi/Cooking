@@ -37,7 +37,7 @@ export class IngredientController {
   }
 
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id') id: string) {
     const data = await this.ingredientService.findById(id);
     return ApiResponse.ok(data);
   }
@@ -50,7 +50,7 @@ export class IngredientController {
 
   @Put(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateIngredientDto,
   ) {
     const data = await this.ingredientService.update(id, dto);
@@ -59,7 +59,7 @@ export class IngredientController {
 
   @Patch(':id/restock')
   async restock(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: RestockIngredientDto,
   ) {
     const data = await this.ingredientService.restock(id, dto.quantity);
@@ -67,7 +67,7 @@ export class IngredientController {
   }
 
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number) {
+  async delete(@Param('id') id: string) {
     await this.ingredientService.delete(id);
     return ApiResponse.ok(null, 'Deleted');
   }

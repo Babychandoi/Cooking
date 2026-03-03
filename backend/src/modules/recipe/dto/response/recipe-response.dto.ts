@@ -1,8 +1,8 @@
 import { RecipeItemResponseDto } from './recipe-item-response.dto.js';
 
 export class RecipeResponseDto {
-  id: number;
-  dishId: number;
+  id: string;
+  dishId: string;
   dishName: string;
   version: number;
   isActive: boolean;

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, LogOut, User } from 'lucide-react';
+import { Bell, LogOut, User, MapPin, ChevronDown } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { useBranch } from './BranchContext';
 
 const pageTitles: Record<string, string> = {
   '/': 'Tổng quan',
@@ -16,14 +17,20 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { branches, selectedBranch, selectBranch, isLoading } = useBranch();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const branchDropdownRef = useRef<HTMLDivElement>(null);
   const title = pageTitles[location.pathname] || 'Cooking App';
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+      }
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(e.target as Node)) {
+        setShowBranchDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -42,7 +49,56 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+          
+          {/* Branch Selector */}
+          {isLoading ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-sm">
+              <MapPin size={16} />
+              <span>Đang tải...</span>
+            </div>
+          ) : selectedBranch ? (
+            <div className="relative" ref={branchDropdownRef}>
+              <button
+                onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition text-sm font-medium"
+              >
+                <MapPin size={16} />
+                <span>{selectedBranch.name}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {showBranchDropdown && branches.length > 0 && (
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase">Chọn chi nhánh</p>
+                  </div>
+                  {branches.map((branch) => (
+                    <button
+                      key={branch.id}
+                      onClick={() => {
+                        selectBranch(branch);
+                        setShowBranchDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-50 transition ${
+                        selectedBranch.id === branch.id ? 'bg-orange-50' : ''
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${
+                        selectedBranch.id === branch.id ? 'text-orange-600' : 'text-gray-800'
+                      }`}>
+                        {branch.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{branch.address}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+        
         <div className="flex items-center gap-4">
           <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <Bell size={20} />

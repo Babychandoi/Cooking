@@ -1,239 +1,502 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Pencil, Trash2, PackagePlus, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, X, PackagePlus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import { ingredientApi } from '../../services/cookingApi';
-import { IngredientResponse, CreateIngredientRequest, UpdateIngredientRequest } from '../../types/cooking';
+import { useBranch } from '../../component/BranchContext';
+import {
+  IngredientResponse,
+  CreateIngredientRequest,
+  UpdateIngredientRequest,
+  BranchIngredientResponse,
+  CreateBranchIngredientRequest,
+  UpdateBranchIngredientRequest,
+  RestockBranchIngredientRequest,
+} from '../../types/cooking';
+import { ingredientApi, branchIngredientApi } from '../../services/cookingApi';
 import Pagination from '../../component/Pagination';
 
-export default function IngredientPage() {
+export default function IngredientPageNew() {
+  const { selectedBranch } = useBranch();
+  
+  // Ingredients (Master data)
   const [ingredients, setIngredients] = useState<IngredientResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const limit = 10;
-  const [showModal, setShowModal] = useState(false);
-  const [showRestockModal, setShowRestockModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [restockId, setRestockId] = useState<number | null>(null);
-  const [restockQty, setRestockQty] = useState('');
-  const [form, setForm] = useState<CreateIngredientRequest>({
+  const [search, setSearch] = useState('');
+  
+  // Branch Ingredients (Stock per branch)
+  const [branchIngredients, setBranchIngredients] = useState<BranchIngredientResponse[]>([]);
+  
+  // Ingredient Modal
+  const [showIngredientModal, setShowIngredientModal] = useState(false);
+  const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
+  const [ingredientForm, setIngredientForm] = useState<CreateIngredientRequest>({
     name: '',
     unit: '',
+  });
+  
+  // Branch Ingredient Modal (Stock management)
+  const [showBranchIngredientModal, setShowBranchIngredientModal] = useState(false);
+  const [editingBranchIngredient, setEditingBranchIngredient] = useState<BranchIngredientResponse | null>(null);
+  const [branchIngredientForm, setBranchIngredientForm] = useState<CreateBranchIngredientRequest>({
+    branchId: '',
+    ingredientId: '',
     stock: 0,
   });
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await ingredientApi.getAll({ page, limit, search: debouncedSearch || undefined });
-      const data = res.data;
-      if (data) {
-        setIngredients(data.items);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
-      }
-    } catch {
-      toast.error('Không thể tải danh sách nguyên liệu');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedSearch]);
+  
+  // Restock Modal
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [restockBranchIngredientId, setRestockBranchIngredientId] = useState<string | null>(null);
+  const [restockQty, setRestockQty] = useState('');
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [page, search, selectedBranch]);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm({ name: '', unit: '', stock: 0 });
-    setShowModal(true);
+  const loadData = async () => {
+    try {
+      const ingredientRes = await ingredientApi.getAll({ page, limit: 20, search });
+      if (ingredientRes.success && ingredientRes.data) {
+        setIngredients(ingredientRes.data.items);
+        setTotalPages(ingredientRes.data.totalPages);
+      }
+      
+      // Load branch ingredients if branch selected
+      if (selectedBranch) {
+        const branchIngredientRes = await branchIngredientApi.getByBranch(selectedBranch.id);
+        if (branchIngredientRes.success && branchIngredientRes.data) {
+          setBranchIngredients(branchIngredientRes.data);
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Lỗi tải dữ liệu');
+    }
   };
 
-  const openEdit = (item: IngredientResponse) => {
-    setEditingId(item.id);
-    setForm({ name: item.name, unit: item.unit, stock: item.stock });
-    setShowModal(true);
+  const getBranchIngredientForIngredient = (ingredientId: string): BranchIngredientResponse | undefined => {
+    return branchIngredients.find(bi => bi.ingredientId === ingredientId);
   };
 
-  const openRestock = (item: IngredientResponse) => {
-    setRestockId(item.id);
+  // ===== INGREDIENT CRUD =====
+  
+  const openCreateIngredient = () => {
+    setEditingIngredientId(null);
+    setIngredientForm({ name: '', unit: '' });
+    setShowIngredientModal(true);
+  };
+
+  const openEditIngredient = (ingredient: IngredientResponse) => {
+    setEditingIngredientId(ingredient.id);
+    setIngredientForm({ name: ingredient.name, unit: ingredient.unit });
+    setShowIngredientModal(true);
+  };
+
+  const handleSaveIngredient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingIngredientId) {
+        await ingredientApi.update(editingIngredientId, ingredientForm as UpdateIngredientRequest);
+        toast.success('Cập nhật nguyên liệu thành công');
+      } else {
+        await ingredientApi.create(ingredientForm);
+        toast.success('Tạo nguyên liệu thành công');
+      }
+
+      setShowIngredientModal(false);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Lỗi lưu nguyên liệu');
+    }
+  };
+
+  const handleDeleteIngredient = async (id: string, name: string) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận xóa?',
+      text: `Bạn có chắc muốn xóa nguyên liệu "${name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await ingredientApi.delete(id);
+        toast.success('Đã xóa nguyên liệu');
+        loadData();
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Lỗi xóa nguyên liệu');
+      }
+    }
+  };
+
+  // ===== BRANCH INGREDIENT CRUD =====
+  
+  const openManageStock = (ingredient: IngredientResponse) => {
+    if (!selectedBranch) {
+      toast.warning('Vui lòng chọn chi nhánh');
+      return;
+    }
+
+    const existing = getBranchIngredientForIngredient(ingredient.id);
+    
+    if (existing) {
+      // Edit existing
+      setEditingBranchIngredient(existing);
+      setBranchIngredientForm({
+        branchId: existing.branchId,
+        ingredientId: existing.ingredientId,
+        stock: parseFloat(existing.stockQuantity),
+      });
+    } else {
+      // Create new
+      setEditingBranchIngredient(null);
+      setBranchIngredientForm({
+        branchId: selectedBranch.id,
+        ingredientId: ingredient.id,
+        stock: 0,
+      });
+    }
+    
+    setShowBranchIngredientModal(true);
+  };
+
+  const handleSaveBranchIngredient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBranchIngredient) {
+        await branchIngredientApi.update(editingBranchIngredient.id, {
+          stock: branchIngredientForm.stock,
+        } as UpdateBranchIngredientRequest);
+        toast.success('Cập nhật tồn kho thành công');
+      } else {
+        await branchIngredientApi.create(branchIngredientForm);
+        toast.success('Thêm nguyên liệu vào chi nhánh thành công');
+      }
+
+      setShowBranchIngredientModal(false);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Lỗi lưu tồn kho');
+    }
+  };
+
+  const openRestock = (branchIngredient: BranchIngredientResponse) => {
+    setRestockBranchIngredientId(branchIngredient.id);
     setRestockQty('');
     setShowRestockModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingId) {
-        await ingredientApi.update(editingId, form as UpdateIngredientRequest);
-        toast.success('Cập nhật thành công');
-      } else {
-        await ingredientApi.create(form);
-        toast.success('Thêm thành công');
-      }
-      setShowModal(false);
-      loadData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
-    }
-  };
-
   const handleRestock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!restockId) return;
+    if (!restockBranchIngredientId) return;
+
     try {
-      await ingredientApi.restock(restockId, Number(restockQty));
+      await branchIngredientApi.restock(restockBranchIngredientId, {
+        quantity: Number(restockQty),
+      } as RestockBranchIngredientRequest);
       toast.success('Nhập kho thành công');
       setShowRestockModal(false);
       loadData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Lỗi nhập kho');
     }
   };
-
-  const handleDelete = async (id: number, name: string) => {
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: `Bạn có chắc muốn xóa "${name}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy',
-    });
-    if (result.isConfirmed) {
-      try {
-        await ingredientApi.delete(id);
-        toast.success('Đã xóa');
-        loadData();
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Không thể xóa');
-      }
-    }
-  };
-
-  if (loading && ingredients.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm nguyên liệu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 w-full sm:w-72"
-          />
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Quản lý Nguyên liệu</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {selectedBranch ? `Chi nhánh: ${selectedBranch.name}` : 'Chọn chi nhánh để xem tồn kho'}
+          </p>
         </div>
         <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition"
+          onClick={openCreateIngredient}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
         >
           <Plus size={18} />
           Thêm nguyên liệu
         </button>
       </div>
 
+      {/* Search */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Tìm kiếm nguyên liệu..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="w-full max-w-md px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+        />
+      </div>
+
+      {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-5 py-3 text-gray-500 font-medium">ID</th>
-                <th className="text-left px-5 py-3 text-gray-500 font-medium">Tên</th>
-                <th className="text-left px-5 py-3 text-gray-500 font-medium">Đơn vị</th>
-                <th className="text-right px-5 py-3 text-gray-500 font-medium">Tồn kho</th>
-                <th className="text-center px-5 py-3 text-gray-500 font-medium">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ingredients.map((item) => (
-                <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-3 text-gray-600">{item.id}</td>
-                  <td className="px-5 py-3 font-medium text-gray-800">{item.name}</td>
-                  <td className="px-5 py-3 text-gray-600">{item.unit}</td>
-                  <td className="px-5 py-3 text-right font-medium text-gray-800">{item.stock}</td>
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên nguyên liệu</th>
+              <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn vị</th>
+              {selectedBranch && (
+                <>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tồn kho</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                </>
+              )}
+              <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {ingredients.map((ingredient) => {
+              const branchIngredient = getBranchIngredientForIngredient(ingredient.id);
+              const stock = branchIngredient ? parseFloat(branchIngredient.stockQuantity) : 0;
+              const hasLowStock = branchIngredient && stock < 1;
+              
+              return (
+                <tr key={ingredient.id} className="hover:bg-gray-50 transition">
+                  <td className="px-5 py-3 font-medium text-gray-800">{ingredient.name}</td>
+                  <td className="px-5 py-3 text-gray-600">{ingredient.unit}</td>
+                  
+                  {selectedBranch && (
+                    <>
+                      <td className="px-5 py-3 text-right font-medium text-gray-800">
+                        {branchIngredient ? stock.toFixed(2) : '-'}
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        {branchIngredient ? (
+                          hasLowStock ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                              Sắp hết
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              Đủ
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Chưa có</span>
+                        )}
+                      </td>
+                    </>
+                  )}
+                  
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openRestock(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Nhập kho"><PackagePlus size={16} /></button>
-                      <button onClick={() => openEdit(item)} className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="Sửa"><Pencil size={16} /></button>
-                      <button onClick={() => handleDelete(item.id, item.name)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Xóa"><Trash2 size={16} /></button>
+                      {selectedBranch && (
+                        <>
+                          {branchIngredient ? (
+                            <button
+                              onClick={() => openRestock(branchIngredient)}
+                              className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                              title="Nhập kho"
+                            >
+                              <PackagePlus size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openManageStock(ingredient)}
+                              className="px-2 py-1 text-xs bg-green-50 text-green-600 hover:bg-green-100 rounded transition"
+                              title="Thêm vào chi nhánh"
+                            >
+                              Thêm
+                            </button>
+                          )}
+                        </>
+                      )}
+                      
+                      <button
+                        onClick={() => openEditIngredient(ingredient)}
+                        className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition"
+                        title="Sửa"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDeleteIngredient(ingredient.id, ingredient.name)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ))}
-              {ingredients.length === 0 && (
-                <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-400">Không có dữ liệu</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-5 pb-3">
-          <Pagination page={page} totalPages={totalPages} total={total} limit={limit} onPageChange={setPage} />
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">{editingId ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
-                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị</label>
-                <input type="text" required value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
+
+      {/* Ingredient Modal */}
+      {showIngredientModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {editingIngredientId ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu mới'}
+              </h3>
+              <button onClick={() => setShowIngredientModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveIngredient} className="p-6">
+              <div className="space-y-4">
+                {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho</label>
-                  <input type="number" min="0" step="0.01" required value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên nguyên liệu</label>
+                  <input
+                    type="text"
+                    required
+                    value={ingredientForm.name}
+                    onChange={(e) => setIngredientForm({ ...ingredientForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  />
+                </div>
+
+                {/* Unit */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị</label>
+                  <input
+                    type="text"
+                    required
+                    value={ingredientForm.unit}
+                    onChange={(e) => setIngredientForm({ ...ingredientForm, unit: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    placeholder="kg, lít, gói..."
+                  />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Hủy</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">{editingId ? 'Cập nhật' : 'Thêm'}</button>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowIngredientModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  {editingIngredientId ? 'Cập nhật' : 'Tạo mới'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* Branch Ingredient Modal (Stock Management) */}
+      {showBranchIngredientModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {editingBranchIngredient ? 'Cập nhật tồn kho' : 'Thêm nguyên liệu vào chi nhánh'}
+              </h3>
+              <button onClick={() => setShowBranchIngredientModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBranchIngredient} className="p-6">
+              <div className="space-y-4">
+                {/* Stock */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={branchIngredientForm.stock}
+                    onChange={(e) => setBranchIngredientForm({ ...branchIngredientForm, stock: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowBranchIngredientModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  {editingBranchIngredient ? 'Cập nhật' : 'Thêm'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Restock Modal */}
       {showRestockModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Nhập kho</h3>
-            <form onSubmit={handleRestock} className="space-y-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">Nhập kho</h3>
+              <button onClick={() => setShowRestockModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRestock} className="p-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập thêm</label>
-                <input type="number" min="0.01" step="0.01" required value={restockQty} onChange={(e) => setRestockQty(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" autoFocus />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={restockQty}
+                  onChange={(e) => setRestockQty(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  placeholder="Nhập số lượng..."
+                />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowRestockModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition">Hủy</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Nhập kho</button>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowRestockModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  Nhập kho
+                </button>
               </div>
             </form>
           </div>

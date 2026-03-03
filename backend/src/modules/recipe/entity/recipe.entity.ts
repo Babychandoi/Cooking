@@ -12,15 +12,15 @@ import { RecipeItem } from './recipe-item.entity.js';
 
 @Entity('recipes')
 export class Recipe {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ManyToOne(() => Dish, { eager: true })
   @JoinColumn({ name: 'dish_id' })
   dish: Dish;
 
   @Column({ name: 'dish_id' })
-  dishId: number;
+  dishId: string;
 
   @Column({ default: 1 })
   version: number;

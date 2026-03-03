@@ -10,7 +10,7 @@ export class OrderItemRepository {
     private readonly repo: Repository<OrderItem>,
   ) {}
 
-  findByOrderId(orderId: number): Promise<OrderItem[]> {
+  findByOrderId(orderId: string): Promise<OrderItem[]> {
     return this.repo.find({
       where: { orderId },
       relations: ['dish', 'ingredients', 'ingredients.ingredient'],

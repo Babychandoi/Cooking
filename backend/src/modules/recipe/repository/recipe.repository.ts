@@ -36,21 +36,21 @@ export class RecipeRepository {
     return qb.getManyAndCount();
   }
 
-  findById(id: number): Promise<Recipe | null> {
+  findById(id: string): Promise<Recipe | null> {
     return this.repo.findOne({
       where: { id },
       relations: ['dish', 'items', 'items.ingredient'],
     });
   }
 
-  findActiveByDishId(dishId: number): Promise<Recipe | null> {
+  findActiveByDishId(dishId: string): Promise<Recipe | null> {
     return this.repo.findOne({
       where: { dishId, isActive: true },
       relations: ['dish', 'items', 'items.ingredient'],
     });
   }
 
-  findAllByDishId(dishId: number): Promise<Recipe[]> {
+  findAllByDishId(dishId: string): Promise<Recipe[]> {
     return this.repo.find({
       where: { dishId },
       relations: ['dish', 'items', 'items.ingredient'],

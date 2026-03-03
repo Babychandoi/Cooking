@@ -2,13 +2,12 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  VersionColumn,
 } from 'typeorm';
 
 @Entity('ingredients')
 export class Ingredient {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ length: 100 })
   name: string;
@@ -16,9 +15,6 @@ export class Ingredient {
   @Column({ length: 20 })
   unit: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  stock: number;
-
-  @VersionColumn()
-  version: number;
+  @Column({ length: 20, default: 'active' })
+  status: string;
 }

@@ -7,8 +7,6 @@ import { OrderRepository } from './repository/order.repository.js';
 import { OrderItemRepository } from './repository/order-item.repository.js';
 import { OrderItemIngredientRepository } from './repository/order-item-ingredient.repository.js';
 import { OrderServiceImpl } from './service/order.service.impl.js';
-import { OrderCancelService } from './service/order-cancel.service.js';
-import { StockCheckerService } from './service/stock-checker.service.js';
 import { OrderController } from './controller/order.controller.js';
 import { ORDER_SERVICE } from './service/order.service.js';
 import { RecipeModule } from '../recipe/recipe.module.js';
@@ -27,8 +25,6 @@ import { IngredientModule } from '../ingredient/ingredient.module.js';
     OrderRepository,
     OrderItemRepository,
     OrderItemIngredientRepository,
-    StockCheckerService,
-    OrderCancelService,
     {
       provide: ORDER_SERVICE,
       useClass: OrderServiceImpl,

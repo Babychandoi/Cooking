@@ -32,7 +32,7 @@ export class DishServiceImpl implements DishService {
     return new PaginatedResponse(dtos, total, page, limit);
   }
 
-  async findById(id: number): Promise<DishResponseDto> {
+  async findById(id: string): Promise<DishResponseDto> {
     const dish = await this.dishRepository.findById(id);
     if (!dish) {
       throw new EntityNotFoundException('Dish', id);
@@ -44,37 +44,30 @@ export class DishServiceImpl implements DishService {
     const dish = new Dish();
     dish.name = dto.name;
     dish.description = dto.description || '';
-    dish.price = dto.price;
-    dish.isAvailable = false; // Mới tạo chưa có công thức nên không thể có sẵn
+    dish.imageUrl = dto.imageUrl || null;
+    dish.isCombo = dto.isCombo || false;
+    dish.status = 'active';
 
     const saved = await this.dishRepository.save(dish);
     return DishMapper.toResponse(saved);
   }
 
-  async update(id: number, dto: UpdateDishDto): Promise<DishResponseDto> {
+  async update(id: string, dto: UpdateDishDto): Promise<DishResponseDto> {
     const dish = await this.dishRepository.findById(id);
     if (!dish) {
       throw new EntityNotFoundException('Dish', id);
     }
 
-    // Check if trying to set available without an active recipe
-    if (dto.isAvailable === true) {
-      const activeRecipe = await this.recipeRepository.findActiveByDishId(id);
-      if (!activeRecipe) {
-        throw new BadRequestException('Không thể đặt "Có sẵn" vì món này chưa có công thức');
-      }
-    }
-
     if (dto.name !== undefined) dish.name = dto.name;
     if (dto.description !== undefined) dish.description = dto.description;
-    if (dto.price !== undefined) dish.price = dto.price;
-    if (dto.isAvailable !== undefined) dish.isAvailable = dto.isAvailable;
+    if (dto.isCombo !== undefined) dish.isCombo = dto.isCombo;
+    if (dto.imageUrl !== undefined) dish.imageUrl = dto.imageUrl || null;
 
     const saved = await this.dishRepository.save(dish);
     return DishMapper.toResponse(saved);
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     const dish = await this.dishRepository.findById(id);
     if (!dish) {
       throw new EntityNotFoundException('Dish', id);

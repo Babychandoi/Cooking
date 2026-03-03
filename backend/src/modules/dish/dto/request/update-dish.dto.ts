@@ -1,9 +1,7 @@
 import {
   IsOptional,
   IsString,
-  IsNumber,
   IsBoolean,
-  Min,
 } from 'class-validator';
 
 export class UpdateDishDto {
@@ -16,11 +14,10 @@ export class UpdateDishDto {
   description?: string;
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  price?: number;
+  @IsBoolean()
+  isCombo?: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  isAvailable?: boolean;
+  @IsString()
+  imageUrl?: string;
 }

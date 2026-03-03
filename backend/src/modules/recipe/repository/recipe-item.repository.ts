@@ -10,7 +10,7 @@ export class RecipeItemRepository {
     private readonly repo: Repository<RecipeItem>,
   ) {}
 
-  findByRecipeId(recipeId: number): Promise<RecipeItem[]> {
+  findByRecipeId(recipeId: string): Promise<RecipeItem[]> {
     return this.repo.find({
       where: { recipeId },
       relations: ['ingredient'],
@@ -25,7 +25,7 @@ export class RecipeItemRepository {
     return this.repo.save(items);
   }
 
-  async removeByRecipeId(recipeId: number): Promise<void> {
+  async removeByRecipeId(recipeId: string): Promise<void> {
     await this.repo.delete({ recipeId });
   }
 

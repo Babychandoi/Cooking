@@ -6,10 +6,10 @@ import { PaginatedResponse } from '../../../common/response/paginated-response.j
 export interface DishService {
   findAll(): Promise<DishResponseDto[]>;
   findPaginated(page: number, limit: number, search?: string): Promise<PaginatedResponse<DishResponseDto>>;
-  findById(id: number): Promise<DishResponseDto>;
+  findById(id: string): Promise<DishResponseDto>;
   create(dto: CreateDishDto): Promise<DishResponseDto>;
-  update(id: number, dto: UpdateDishDto): Promise<DishResponseDto>;
-  delete(id: number): Promise<void>;
+  update(id: string, dto: UpdateDishDto): Promise<DishResponseDto>;
+  delete(id: string): Promise<void>;
 }
 
 export const DISH_SERVICE = 'DISH_SERVICE';
