@@ -8,6 +8,7 @@ export class PaymentMapper {
       invoiceId: entity.invoiceId,
       method: entity.method,
       amount: entity.amount,
+      status: entity.status,
       paidAt: entity.paidAt,
     };
   }

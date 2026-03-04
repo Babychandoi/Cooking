@@ -11,11 +11,7 @@ export class CreateInvoiceDto {
 
   @IsNumber()
   @IsOptional()
-  discountAmount?: number;
-
-  @IsNumber()
-  @IsOptional()
-  taxAmount?: number;
+  vatAmount?: number;
 
   @IsNumber()
   @IsNotEmpty()

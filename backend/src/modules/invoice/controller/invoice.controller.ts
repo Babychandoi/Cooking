@@ -4,6 +4,7 @@ import { INVOICE_SERVICE } from '../service/invoice.service.js';
 import { CreateInvoiceDto } from '../dto/request/create-invoice.dto.js';
 import { UpdateInvoiceDto } from '../dto/request/update-invoice.dto.js';
 import { ApiResponse } from '../../../common/response/api-response.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 
 @Controller('invoices')
 export class InvoiceController {
@@ -13,10 +14,18 @@ export class InvoiceController {
   ) {}
 
   @Get()
-  async findAll(@Query('tableSessionId') tableSessionId?: string) {
-    const data = tableSessionId
-      ? await this.service.findByTableSession(tableSessionId)
-      : await this.service.findAll();
+  async findAll(@Query() query: PaginationQueryDto, @Query('tableSessionId') tableSessionId?: string) {
+    if (tableSessionId) {
+      const data = await this.service.findByTableSession(tableSessionId);
+      return ApiResponse.ok(data);
+    }
+    const data = await this.service.findAll(query);
+    return ApiResponse.ok(data);
+  }
+
+  @Get('table-session/:tableSessionId')
+  async findByTableSession(@Param('tableSessionId') tableSessionId: string) {
+    const data = await this.service.findByTableSession(tableSessionId);
     return ApiResponse.ok(data);
   }
 

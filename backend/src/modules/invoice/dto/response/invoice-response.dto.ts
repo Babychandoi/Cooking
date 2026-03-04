@@ -2,8 +2,7 @@ export class InvoiceResponseDto {
   id: string;
   tableSessionId: string;
   totalAmount: number;
-  discountAmount: number;
-  taxAmount: number;
+  vatAmount: number;
   finalAmount: number;
   status: string;
   issuedAt: Date;

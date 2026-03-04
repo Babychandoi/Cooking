@@ -40,6 +40,12 @@ export class OrderController {
     return ApiResponse.ok(data);
   }
 
+  @Get('table-session/:tableSessionId')
+  async findByTableSession(@Param('tableSessionId') tableSessionId: string) {
+    const data = await this.orderService.findByTableSession(tableSessionId);
+    return ApiResponse.ok(data);
+  }
+
   @Post()
   async create(@Body() dto: CreateOrderDto) {
     const data = await this.orderService.create(dto);

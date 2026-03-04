@@ -7,6 +7,7 @@ export interface OrderService {
   findAll(): Promise<OrderResponseDto[]>;
   findPaginated(page: number, limit: number, search?: string): Promise<PaginatedResponse<OrderResponseDto>>;
   findById(id: string): Promise<OrderResponseDto>;
+  findByTableSession(tableSessionId: string): Promise<OrderResponseDto[]>;
   create(dto: CreateOrderDto): Promise<OrderResponseDto>;
   updateStatus(id: string, status: OrderStatus): Promise<OrderResponseDto>;
   cancel(id: string, reason?: string): Promise<OrderResponseDto>;

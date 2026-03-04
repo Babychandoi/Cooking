@@ -6,14 +6,28 @@ import { InvoiceResponseDto } from '../dto/response/invoice-response.dto.js';
 import { CreateInvoiceDto } from '../dto/request/create-invoice.dto.js';
 import { UpdateInvoiceDto } from '../dto/request/update-invoice.dto.js';
 import { Invoice } from '../entity/invoice.entity.js';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
+import { PaginatedResponse } from '../../../common/response/paginated-response.js';
 
 @Injectable()
 export class InvoiceServiceImpl implements InvoiceService {
   constructor(private readonly repository: InvoiceRepository) {}
 
-  async findAll(): Promise<InvoiceResponseDto[]> {
-    const invoices = await this.repository.findAll();
-    return InvoiceMapper.toDtoList(invoices);
+  async findAll(query?: PaginationQueryDto): Promise<PaginatedResponse<InvoiceResponseDto>> {
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const search = query?.search || '';
+
+    const [invoices, total] = await this.repository.findAllPaginated(page, limit, search);
+    const items = InvoiceMapper.toDtoList(invoices);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string): Promise<InvoiceResponseDto> {
@@ -33,8 +47,7 @@ export class InvoiceServiceImpl implements InvoiceService {
     const invoice = new Invoice();
     invoice.tableSessionId = dto.tableSessionId;
     invoice.totalAmount = dto.totalAmount;
-    invoice.discountAmount = dto.discountAmount ?? 0;
-    invoice.taxAmount = dto.taxAmount ?? 0;
+    invoice.vatAmount = dto.vatAmount ?? 0;
     invoice.finalAmount = dto.finalAmount;
     invoice.status = dto.status || 'pending';
 
@@ -50,8 +63,7 @@ export class InvoiceServiceImpl implements InvoiceService {
     }
 
     if (dto.totalAmount !== undefined) invoice.totalAmount = dto.totalAmount;
-    if (dto.discountAmount !== undefined) invoice.discountAmount = dto.discountAmount;
-    if (dto.taxAmount !== undefined) invoice.taxAmount = dto.taxAmount;
+    if (dto.vatAmount !== undefined) invoice.vatAmount = dto.vatAmount;
     if (dto.finalAmount !== undefined) invoice.finalAmount = dto.finalAmount;
     if (dto.status !== undefined) invoice.status = dto.status;
 

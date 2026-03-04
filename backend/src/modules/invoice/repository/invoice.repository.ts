@@ -17,6 +17,24 @@ export class InvoiceRepository {
     });
   }
 
+  async findAllPaginated(page: number, limit: number, search: string): Promise<[Invoice[], number]> {
+    const query = this.repo
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.tableSession', 'tableSession')
+      .leftJoinAndSelect('invoice.payments', 'payments')
+      .orderBy('invoice.issuedAt', 'DESC');
+
+    if (search) {
+      query.where('invoice.status ILIKE :search OR invoice.id::text ILIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    return query.getManyAndCount();
+  }
+
   findById(id: string): Promise<Invoice | null> {
     return this.repo.findOne({
       where: { id },

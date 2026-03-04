@@ -103,15 +103,13 @@ export class TableSessionServiceImpl implements TableSessionService {
 
         // Create invoice
         if (totalAmount > 0) {
-          const discountAmount = 0;
-          const taxAmount = 0;
-          const finalAmount = totalAmount - discountAmount + taxAmount;
+          const vatAmount = totalAmount * 0.08; // VAT 8%
+          const finalAmount = totalAmount + vatAmount;
           
           await this.invoiceService.create({
             tableSessionId: id,
             totalAmount,
-            discountAmount,
-            taxAmount,
+            vatAmount,
             finalAmount,
             status: 'pending',
           });

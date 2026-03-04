@@ -7,8 +7,9 @@ import {
   CreateInvoiceRequest,
   PaymentResponse,
   CreatePaymentRequest,
+  OrderResponse,
 } from '../../types/cooking';
-import { invoiceApi, paymentApi, tableSessionApi } from '../../services/cookingApi';
+import { invoiceApi, paymentApi, tableSessionApi, orderApi } from '../../services/cookingApi';
 import Pagination from '../../component/Pagination';
 
 export default function InvoicePage() {
@@ -23,6 +24,7 @@ export default function InvoicePage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailInvoice, setDetailInvoice] = useState<InvoiceResponse | null>(null);
   const [payments, setPayments] = useState<PaymentResponse[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
   
   // Payment Modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -38,9 +40,8 @@ export default function InvoicePage() {
     try {
       const res = await invoiceApi.getAll({ page, limit: 20, search });
       if (res.success && res.data) {
-        // Filter by branch
-        const branchInvoices = res.data.items.filter(inv => inv.branchId === selectedBranch.id);
-        setInvoices(branchInvoices);
+        // Handle paginated response
+        setInvoices(res.data.items);
         setTotalPages(res.data.totalPages);
       }
     } catch (error: any) {
@@ -58,11 +59,11 @@ export default function InvoicePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-700';
-      case 'PAID':
+      case 'paid':
         return 'bg-green-100 text-green-700';
-      case 'CANCELLED':
+      case 'cancelled':
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -71,11 +72,11 @@ export default function InvoicePage() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'PENDING':
+      case 'pending':
         return 'Chờ thanh toán';
-      case 'PAID':
+      case 'paid':
         return 'Đã thanh toán';
-      case 'CANCELLED':
+      case 'cancelled':
         return 'Đã hủy';
       default:
         return status;
@@ -95,6 +96,16 @@ export default function InvoicePage() {
       console.error('Failed to load payments:', error);
     }
     
+    // Load orders
+    try {
+      const res = await orderApi.getByTableSession(invoice.tableSessionId);
+      if (res.success && res.data) {
+        setOrders(res.data);
+      }
+    } catch (error) {
+      console.error('Failed to load orders:', error);
+    }
+    
     setShowDetailModal(true);
   };
 
@@ -102,10 +113,13 @@ export default function InvoicePage() {
     setShowDetailModal(false);
     setDetailInvoice(null);
     setPayments([]);
+    setOrders([]);
   };
 
   const openPayment = (invoice: InvoiceResponse) => {
-    const remainingAmount = invoice.finalAmount - payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + p.amount : sum, 0);
+    const finalAmount = parseFloat(invoice.finalAmount);
+    const paidAmount = payments.reduce((sum, p) => p.status === 'COMPLETED' ? sum + p.amount : sum, 0);
+    const remainingAmount = finalAmount - paidAmount;
     
     setPaymentForm({
       invoiceId: invoice.id,
@@ -123,14 +137,20 @@ export default function InvoicePage() {
       toast.success('Thanh toán thành công');
       setShowPaymentModal(false);
       
-      // Reload invoice and payments
+      // Reload invoice detail
       if (detailInvoice) {
-        const res = await paymentApi.getByInvoice(detailInvoice.id);
-        if (res.success && res.data) {
-          setPayments(res.data);
+        const invoiceRes = await invoiceApi.getById(detailInvoice.id);
+        if (invoiceRes.success && invoiceRes.data) {
+          setDetailInvoice(invoiceRes.data);
+        }
+        
+        const paymentsRes = await paymentApi.getByInvoice(detailInvoice.id);
+        if (paymentsRes.success && paymentsRes.data) {
+          setPayments(paymentsRes.data);
         }
       }
       
+      // Reload invoice list
       loadData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Lỗi thanh toán');
@@ -176,7 +196,7 @@ export default function InvoicePage() {
               <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã HĐ</th>
               <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày tạo</th>
               <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-              <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase">Giảm giá</th>
+              <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase">VAT (8%)</th>
               <th className="px-5 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
               <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
               <th className="px-5 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
@@ -187,11 +207,11 @@ export default function InvoicePage() {
               <tr key={invoice.id} className="hover:bg-gray-50 transition">
                 <td className="px-5 py-3 font-medium text-gray-800">#{invoice.id.slice(0, 8)}</td>
                 <td className="px-5 py-3 text-gray-600 text-sm">
-                  {new Date(invoice.createdAt).toLocaleString('vi-VN')}
+                  {new Date(invoice.issuedAt).toLocaleString('vi-VN')}
                 </td>
-                <td className="px-5 py-3 text-right text-gray-700">{formatPrice(invoice.totalAmount)}</td>
-                <td className="px-5 py-3 text-right text-red-600">-{formatPrice(invoice.discount)}</td>
-                <td className="px-5 py-3 text-right font-bold text-orange-600">{formatPrice(invoice.finalAmount)}</td>
+                <td className="px-5 py-3 text-right text-gray-700">{formatPrice(parseFloat(invoice.totalAmount))}</td>
+                <td className="px-5 py-3 text-right text-blue-600">+{formatPrice(parseFloat(invoice.vatAmount))}</td>
+                <td className="px-5 py-3 text-right font-bold text-orange-600">{formatPrice(parseFloat(invoice.finalAmount))}</td>
                 <td className="px-5 py-3 text-center">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
                     {getStatusLabel(invoice.status)}
@@ -206,7 +226,7 @@ export default function InvoicePage() {
                     >
                       <Eye size={16} />
                     </button>
-                    {invoice.status === 'PENDING' && (
+                    {invoice.status === 'pending' && (
                       <button
                         onClick={() => openPayment(invoice)}
                         className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition"
@@ -260,7 +280,7 @@ export default function InvoicePage() {
                   <div>
                     <p className="text-gray-500">Ngày tạo</p>
                     <p className="font-medium text-gray-800">
-                      {new Date(detailInvoice.createdAt).toLocaleString('vi-VN')}
+                      {new Date(detailInvoice.issuedAt).toLocaleString('vi-VN')}
                     </p>
                   </div>
                   <div>
@@ -275,25 +295,70 @@ export default function InvoicePage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Tổng tiền:</span>
-                      <span className="font-medium text-gray-800">{formatPrice(detailInvoice.totalAmount)}</span>
+                      <span className="font-medium text-gray-800">{formatPrice(parseFloat(detailInvoice.totalAmount))}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Giảm giá:</span>
-                      <span className="font-medium text-red-600">-{formatPrice(detailInvoice.discount)}</span>
+                      <span className="text-gray-600">VAT (8%):</span>
+                      <span className="font-medium text-blue-600">+{formatPrice(parseFloat(detailInvoice.vatAmount))}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
                       <span className="text-gray-800">Thành tiền:</span>
-                      <span className="text-orange-600">{formatPrice(detailInvoice.finalAmount)}</span>
+                      <span className="text-orange-600">{formatPrice(parseFloat(detailInvoice.finalAmount))}</span>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Orders */}
+              <div className="mb-6">
+                <h4 className="font-semibold text-gray-800 mb-3">Các món đã gọi</h4>
+                {orders.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>Không có món nào</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {orders.map((order) => (
+                      <div key={order.id} className="border border-gray-100 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-gray-500">
+                            Order #{order.orderNumber}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            order.status === 'SERVED' ? 'bg-green-100 text-green-700' :
+                            order.status === 'PREPARING' ? 'bg-blue-100 text-blue-700' :
+                            order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {order.status === 'SERVED' ? 'Đã phục vụ' :
+                             order.status === 'PREPARING' ? 'Đang nấu' :
+                             order.status === 'CANCELLED' ? 'Đã hủy' : 'Mới'}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {order.items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between text-sm">
+                              <div className="flex-1">
+                                <span className="text-gray-700">{item.dishName}</span>
+                                <span className="text-gray-400 ml-2">x{item.quantity}</span>
+                              </div>
+                              <span className="text-gray-600 font-medium">
+                                {formatPrice(item.unitPrice * item.quantity)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Payments */}
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-semibold text-gray-800">Lịch sử thanh toán</h4>
-                  {detailInvoice.status === 'PENDING' && (
+                  {detailInvoice.status === 'pending' && (
                     <button
                       onClick={() => openPayment(detailInvoice)}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
@@ -318,7 +383,7 @@ export default function InvoicePage() {
                               {payment.method === 'CASH' ? 'Tiền mặt' : payment.method === 'CARD' ? 'Thẻ' : 'Chuyển khoản'}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {new Date(payment.createdAt).toLocaleString('vi-VN')}
+                              {new Date(payment.paidAt).toLocaleString('vi-VN')}
                             </p>
                           </div>
                           <div className="text-right">
@@ -360,7 +425,7 @@ export default function InvoicePage() {
                   <input
                     type="number"
                     min="0"
-                    step="1000"
+                    step="1"
                     required
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: Number(e.target.value) })}

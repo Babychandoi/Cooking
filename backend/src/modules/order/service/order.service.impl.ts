@@ -37,6 +37,11 @@ export class OrderServiceImpl implements OrderService {
     return OrderMapper.toResponse(order);
   }
 
+  async findByTableSession(tableSessionId: string): Promise<OrderResponseDto[]> {
+    const orders = await this.orderRepository.findByTableSession(tableSessionId);
+    return OrderMapper.toResponseList(orders);
+  }
+
   async create(dto: CreateOrderDto): Promise<OrderResponseDto> {
     // Create new order
     const order = new Order();

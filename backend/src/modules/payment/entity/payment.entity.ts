@@ -19,6 +19,9 @@ export class Payment {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
 
+  @Column({ length: 20, default: 'COMPLETED' })
+  status: string; // PENDING, COMPLETED, FAILED
+
   @CreateDateColumn({ name: 'paid_at' })
   paidAt: Date;
 }

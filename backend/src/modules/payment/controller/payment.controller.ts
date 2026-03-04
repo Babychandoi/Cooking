@@ -19,6 +19,12 @@ export class PaymentController {
     return ApiResponse.ok(data);
   }
 
+  @Get('invoice/:invoiceId')
+  async findByInvoice(@Param('invoiceId') invoiceId: string) {
+    const data = await this.service.findByInvoice(invoiceId);
+    return ApiResponse.ok(data);
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     const data = await this.service.findById(id);

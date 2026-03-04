@@ -313,6 +313,10 @@ export const orderApi = {
     const res = await axiosClient.get<CookingApiResponse<OrderResponse>>(`/orders/${id}`);
     return res.data;
   },
+  getByTableSession: async (tableSessionId: string): Promise<CookingApiResponse<OrderResponse[]>> => {
+    const res = await axiosClient.get<CookingApiResponse<OrderResponse[]>>(`/orders/table-session/${tableSessionId}`);
+    return res.data;
+  },
   create: async (data: CreateOrderRequest): Promise<CookingApiResponse<OrderResponse>> => {
     const res = await axiosClient.post<CookingApiResponse<OrderResponse>>('/orders', data);
     return res.data;

@@ -7,11 +7,7 @@ export class UpdateInvoiceDto {
 
   @IsNumber()
   @IsOptional()
-  discountAmount?: number;
-
-  @IsNumber()
-  @IsOptional()
-  taxAmount?: number;
+  vatAmount?: number;
 
   @IsNumber()
   @IsOptional()

@@ -244,18 +244,20 @@ export interface InsufficientStockItem {
 export interface InvoiceResponse {
   id: string;
   tableSessionId: string;
-  branchId: string;
-  totalAmount: number;
-  discount: number;
-  finalAmount: number;
-  status: 'PENDING' | 'PAID' | 'CANCELLED';
-  createdAt: string;
+  totalAmount: string;
+  vatAmount: string;
+  finalAmount: string;
+  status: 'pending' | 'paid' | 'cancelled';
+  issuedAt: string;
+  payments: PaymentResponse[];
 }
 
 export interface CreateInvoiceRequest {
   tableSessionId: string;
-  branchId: string;
-  discount?: number;
+  totalAmount: number;
+  vatAmount?: number;
+  finalAmount: number;
+  status?: string;
 }
 
 // ===== Payment =====
@@ -265,7 +267,7 @@ export interface PaymentResponse {
   amount: number;
   method: 'CASH' | 'CARD' | 'TRANSFER';
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
-  createdAt: string;
+  paidAt: string;
 }
 
 export interface CreatePaymentRequest {

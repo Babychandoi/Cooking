@@ -17,11 +17,8 @@ export class Invoice {
   @Column({ name: 'total_amount', type: 'decimal', precision: 10, scale: 2 })
   totalAmount: number;
 
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discountAmount: number;
-
-  @Column({ name: 'tax_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  taxAmount: number;
+  @Column({ name: 'vat_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  vatAmount: number;
 
   @Column({ name: 'final_amount', type: 'decimal', precision: 10, scale: 2 })
   finalAmount: number;

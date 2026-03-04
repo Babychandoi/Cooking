@@ -3,5 +3,6 @@ export class PaymentResponseDto {
   invoiceId: string;
   method: string;
   amount: number;
+  status: string;
   paidAt: Date;
 }

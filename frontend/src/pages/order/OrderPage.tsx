@@ -12,7 +12,6 @@ import {
   TableSessionResponse,
 } from '../../types/cooking';
 import { orderApi, branchDishApi, tableApi, tableSessionApi } from '../../services/cookingApi';
-import Pagination from '../../component/Pagination';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   NEW: { label: 'Mới', color: 'bg-blue-100 text-blue-700' },
@@ -31,10 +30,8 @@ export default function OrderPageNew() {
   
   // Orders
   const [orders, setOrders] = useState<OrderResponse[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [orderTableMap, setOrderTableMap] = useState<Record<string, string>>({}); // orderId -> tableCode
   
   // Tables & Sessions
   const [tables, setTables] = useState<TableResponse[]>([]);
@@ -51,38 +48,53 @@ export default function OrderPageNew() {
 
   useEffect(() => {
     if (selectedBranch) {
-      loadData();
-      loadTables();
+      loadTablesAndOrders();
       loadBranchDishes();
     }
-  }, [page, search, selectedBranch]);
+  }, [selectedBranch]);
 
-  const loadData = async () => {
+  const loadTablesAndOrders = async () => {
     if (!selectedBranch) return;
     
     try {
-      const res = await orderApi.getAll({ page, limit: 20, search });
-      if (res.success && res.data) {
-        // Filter orders by current branch
-        const branchOrders = res.data.items.filter(o => o.branchId === selectedBranch.id);
-        setOrders(branchOrders);
-        setTotalPages(res.data.totalPages);
+      // Load all tables
+      const tablesRes = await tableApi.getByBranch(selectedBranch.id);
+      if (tablesRes.success && tablesRes.data) {
+        setTables(tablesRes.data);
+        
+        // Get occupied tables only
+        const occupiedTables = tablesRes.data.filter(t => t.status === 'occupied');
+        
+        // Load orders for each occupied table's active session
+        const allOrders: OrderResponse[] = [];
+        const tableMap: Record<string, string> = {};
+        
+        for (const table of occupiedTables) {
+          try {
+            const sessionRes = await tableSessionApi.getActiveByTable(table.id);
+            if (sessionRes.success && sessionRes.data) {
+              // Load orders for this session
+              const ordersRes = await orderApi.getByTableSession(sessionRes.data.id);
+              if (ordersRes.success && ordersRes.data) {
+                // Map each order to its table
+                ordersRes.data.forEach(order => {
+                  tableMap[order.id] = table.tableCode;
+                });
+                allOrders.push(...ordersRes.data);
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to load orders for table ${table.tableCode}:`, error);
+          }
+        }
+        
+        // Sort by creation time (newest first)
+        allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setOrders(allOrders);
+        setOrderTableMap(tableMap);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Lỗi tải dữ liệu');
-    }
-  };
-
-  const loadTables = async () => {
-    if (!selectedBranch) return;
-    
-    try {
-      const res = await tableApi.getByBranch(selectedBranch.id);
-      if (res.success && res.data) {
-        setTables(res.data);
-      }
-    } catch (error: any) {
-      console.error('Failed to load tables:', error);
     }
   };
 
@@ -137,7 +149,7 @@ export default function OrderPageNew() {
       if (res.success && res.data) {
         setActiveSession(res.data);
         toast.success('Đã mở phiên bàn');
-        loadTables(); // Reload to update table status
+        loadTablesAndOrders();
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Lỗi mở phiên bàn');
@@ -164,8 +176,7 @@ export default function OrderPageNew() {
         setActiveSession(null);
         setSelectedTable(null);
         toast.success('Đã đóng phiên bàn');
-        loadTables();
-        loadData();
+        loadTablesAndOrders();
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Lỗi đóng phiên bàn');
       }
@@ -235,7 +246,7 @@ export default function OrderPageNew() {
       await orderApi.create(payload);
       toast.success('Tạo đơn hàng thành công');
       setShowOrderModal(false);
-      loadData();
+      loadTablesAndOrders();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Lỗi tạo đơn hàng');
     }
@@ -260,7 +271,7 @@ export default function OrderPageNew() {
       try {
         await orderApi.updateStatus(orderId, next.nextStatus);
         toast.success('Cập nhật thành công');
-        loadData();
+        loadTablesAndOrders();
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Lỗi cập nhật');
       }
@@ -283,7 +294,7 @@ export default function OrderPageNew() {
       try {
         await orderApi.cancel(orderId, reason || undefined);
         toast.success('Đã hủy đơn hàng');
-        loadData();
+        loadTablesAndOrders();
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Lỗi hủy đơn');
       }
@@ -393,25 +404,11 @@ export default function OrderPageNew() {
 
         {/* Right: Orders List */}
         <div className="lg:col-span-2">
-          {/* Search */}
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="Tìm kiếm đơn hàng..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
-            />
-          </div>
-
           {/* Orders */}
           <div className="space-y-3">
             {orders.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-                <p className="text-gray-400">Chưa có đơn hàng nào</p>
+                <p className="text-gray-400">Chưa có đơn hàng nào từ các bàn đang mở</p>
               </div>
             ) : (
               orders
@@ -429,6 +426,11 @@ export default function OrderPageNew() {
                       >
                         <div className="flex items-center gap-4 flex-wrap">
                           <span className="font-semibold text-gray-800">{order.orderNumber}</span>
+                          {orderTableMap[order.id] && (
+                            <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700">
+                              Bàn {orderTableMap[order.id]}
+                            </span>
+                          )}
                           <span className={`text-xs px-2 py-1 rounded-full font-medium ${status.color}`}>
                             {status.label}
                           </span>
@@ -512,13 +514,6 @@ export default function OrderPageNew() {
                 })
             )}
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6">
-              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-            </div>
-          )}
         </div>
       </div>
 

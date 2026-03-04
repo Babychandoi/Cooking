@@ -50,6 +50,14 @@ export class OrderRepository {
     });
   }
 
+  findByTableSession(tableSessionId: string): Promise<Order[]> {
+    return this.repo.find({
+      where: { tableSessionId },
+      relations: ['items', 'items.dish'],
+      order: { createdAt: 'ASC' },
+    });
+  }
+
   save(order: Order): Promise<Order> {
     return this.repo.save(order);
   }
